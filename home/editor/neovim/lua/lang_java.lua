@@ -38,9 +38,17 @@ function M.bundles(root)
   return list
 end
 
--- Extra jdtls command-line arguments for `root`.
+-- jdtls keeps an index per project ("workspace"). One directory per project root,
+-- named after the folder plus a short hash of the full path, so two projects with the
+-- same folder name do not share (and corrupt) an index.
+function M.workspace_dir(root)
+  local name = vim.fs.basename(root) .. "-" .. vim.fn.sha256(root):sub(1, 8)
+  return vim.fn.stdpath("cache") .. "/jdtls/workspace/" .. name
+end
+
+-- Extra jdtls command-line arguments for `root`: workspace, and Lombok if provided.
 function M.extra_args(root)
-  local args = {}
+  local args = { "-data", M.workspace_dir(root) }
   local lombok = devshell.getenv(root, "JDTLS_LOMBOK_JAR")
   if lombok and lombok ~= "" then
     table.insert(args, "--jvm-arg=-javaagent:" .. lombok)
@@ -83,6 +91,47 @@ function M.setup_neotest()
       end
     end
   end
+end
+
+-- Spring Boot: an overseer task "spring-boot: run" in projects that use Spring Boot.
+-- Uses the project's wrapper (./mvnw, ./gradlew) when present, otherwise mvn/gradle
+-- from the devshell. The task runs inside the devshell (see tasks.nix).
+function M.setup_tasks()
+  local ok, overseer = pcall(require, "overseer")
+  if not ok then
+    return
+  end
+  overseer.register_template({
+    name = "spring-boot",
+    generator = function(opts)
+      local root = vim.fs.root(opts.dir, { "mvnw", "pom.xml", "gradlew", "build.gradle", "build.gradle.kts" })
+      if not root then
+        return "Not a Maven/Gradle project"
+      end
+      local function has(file)
+        return vim.uv.fs_stat(root .. "/" .. file) ~= nil
+      end
+      local function mentions_spring(file)
+        return has(file) and table.concat(vim.fn.readfile(root .. "/" .. file), "\n"):find("spring%-boot") ~= nil
+      end
+      local cmd
+      if mentions_spring("pom.xml") then
+        cmd = has("mvnw") and { "./mvnw", "spring-boot:run" } or { "mvn", "spring-boot:run" }
+      elseif mentions_spring("build.gradle") or mentions_spring("build.gradle.kts") then
+        cmd = has("gradlew") and { "./gradlew", "bootRun" } or { "gradle", "bootRun" }
+      else
+        return "No Spring Boot plugin in the build file"
+      end
+      return {
+        {
+          name = "spring-boot: run",
+          builder = function()
+            return { cmd = cmd, cwd = root }
+          end,
+        },
+      }
+    end,
+  })
 end
 
 return M

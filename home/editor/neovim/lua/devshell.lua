@@ -311,6 +311,8 @@ end
 -- true), then the devshell, then Neovim's PATH. If none has it, the formatter is
 -- skipped (conform moves on to the next one, or to LSP formatting) and you are told once.
 -- `needs_file` (optional): only use the formatter when one of these files exists above.
+-- `warn_ft` (optional): only warn about a missing formatter for these filetypes (e.g.
+-- prettier is expected for TypeScript, but optional for JSON, which falls back to LSP).
 function M.conform(name, opts)
   opts = opts or {}
   local conform = require("conform")
@@ -336,7 +338,9 @@ function M.conform(name, opts)
       if find(ctx) then
         return true
       end
-      if M.get(ctx.dirname) or not M.envrc_dir(ctx.dirname) then
+      local ft = vim.bo[ctx.buf].filetype
+      local wanted = not opts.warn_ft or vim.tbl_contains(opts.warn_ft, ft)
+      if wanted and (M.get(ctx.dirname) or not M.envrc_dir(ctx.dirname)) then
         M.warn_missing(ctx.dirname, bin, M.get(ctx.dirname)) -- env is known: really missing
       end
       return false

@@ -95,6 +95,9 @@ in
     };
 
     plugins = {
+      # Breadcrumbs (file > class > method) in the window bar, like VS Code.
+      dropbar.enable = true;
+
       # --- Icons & core UI ---
       web-devicons.enable = true;
       nui.enable = true;
@@ -243,6 +246,12 @@ in
 
     };
     keymaps = [
+      {
+        mode = "n";
+        key = "<leader>;";
+        action.__raw = "function() require('dropbar.api').pick() end";
+        options.desc = "Pick Breadcrumb";
+      }
       {
         mode = "n";
         key = "<leader>uw";

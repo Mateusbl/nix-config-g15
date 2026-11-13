@@ -4,6 +4,12 @@
 {
   programs.nixvim = {
     plugins = {
+      # Sticky scroll: keeps the enclosing function/class header visible at the top.
+      treesitter-context = {
+        enable = true;
+        settings.max_lines = 3;
+      };
+
       # --- Treesitter ---
       treesitter = {
         enable = true;
@@ -53,5 +59,14 @@
       ts-autotag.enable = true;
       ts-comments.enable = true;
     };
+
+    keymaps = [
+      {
+        mode = "n";
+        key = "<leader>uc";
+        action = "<cmd>TSContext toggle<cr>";
+        options.desc = "Toggle Sticky Scroll";
+      }
+    ];
   };
 }

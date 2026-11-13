@@ -82,11 +82,21 @@ in
     # Neovim's PATH (lsp.servers.jdtls.package defaults to it).
     lsp.servers.jdtls.package = null;
 
+    keymaps = [
+      {
+        mode = "n";
+        key = "<leader>os";
+        action.__raw = "function() require('overseer').run_task({ name = 'spring-boot: run' }) end";
+        options.desc = "Spring Boot: Run";
+      }
+    ];
+
     extraFiles."lua/lang_java.lua".source = ../lua/lang_java.lua;
 
     extraConfigLuaPost = ''
       require("lang_java").setup()
       require("lang_java").setup_neotest()
+      require("lang_java").setup_tasks()
       require("devshell").conform("google-java-format")
       require("devshell").register({ "java" }, {
         { bin = "java", what = "JDK", version = { "-version" } },

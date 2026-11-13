@@ -4,6 +4,9 @@
 {
   programs.nixvim = {
     plugins = {
+      # Visual undo history (branches included).
+      undotree.enable = true;
+
       # --- File explorer ---
       neo-tree = {
         enable = true;
@@ -64,6 +67,12 @@
       persistence.enable = true;
     };
     keymaps = [
+      {
+        mode = "n";
+        key = "<leader>uu";
+        action = "<cmd>UndotreeToggle<cr>";
+        options.desc = "Toggle Undo Tree";
+      }
       # --- Oil ---
       {
         mode = "n";

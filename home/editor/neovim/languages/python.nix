@@ -1,4 +1,6 @@
 # Python: pyright + ruff (from the project's devenv), debugpy via dap-python, pytest via neotest.
+# pyright, not basedpyright: it is what devenv's languages.python.lsp installs by default
+# and what VS Code's Pylance is built on (see docs/neovim-decisions.md).
 { config, lib, ... }:
 
 let
@@ -29,10 +31,16 @@ in
       };
     };
 
-    plugins.conform-nvim.settings.formatters_by_ft.python = [
-      "ruff_organize_imports"
-      "ruff_format"
-    ];
+    plugins.conform-nvim.settings.formatters_by_ft = {
+      # ruff does both: sort imports, then format (it is also the linter, via its LSP).
+      python = [
+        "ruff_organize_imports"
+        "ruff_format"
+      ];
+      # Django templates. Neovim detects them as `htmldjango`; the html server (config-files.nix)
+      # also attaches. djlint is optional and comes from the project.
+      htmldjango = [ "djlint" ];
+    };
 
     plugins.dap-python = {
       enable = cfg.debug.enable;
@@ -64,6 +72,7 @@ in
       devshell.wrap_lsp("ruff")
       devshell.conform("ruff_format")
       devshell.conform("ruff_organize_imports")
+      devshell.conform("djlint", { warn_ft = {} }) -- optional: never warn
       require("lang_python").setup_dap()
       devshell.register({ "python" }, {
         { bin = "python", what = "interpreter" },
@@ -71,6 +80,9 @@ in
         { bin = "ruff", what = "linter + formatter" },
         { bin = "python", what = "debugpy", version = { "-c", "import debugpy; print('debugpy', debugpy.__version__)" } },
         { bin = "python", what = "pytest", version = { "-m", "pytest", "--version" } },
+      })
+      devshell.register({ "htmldjango" }, {
+        { bin = "djlint", what = "template formatter (optional)" },
       })
     '';
   };

@@ -4,6 +4,61 @@
 {
   programs.nixvim = {
     keymaps = [
+      # --- VS Code aliases (additions; the original keymaps are unchanged) ---
+      # <C-S-...> keys only reach Neovim if the terminal reports them (Ghostty does,
+      # via the kitty keyboard protocol that Neovim enables).
+      {
+        mode = "n";
+        key = "<C-p>";
+        action = "<cmd>FzfLua files<cr>";
+        options.desc = "Quick Open (files)";
+      }
+      {
+        mode = "n";
+        key = "<C-S-p>";
+        action = "<cmd>FzfLua commands<cr>";
+        options.desc = "Command Palette";
+      }
+      {
+        mode = "n";
+        key = "<C-S-f>";
+        action = "<cmd>FzfLua live_grep<cr>";
+        options.desc = "Search in Files";
+      }
+      {
+        mode = "n";
+        key = "<C-S-m>";
+        action = "<cmd>Trouble diagnostics toggle<cr>";
+        options.desc = "Problems Panel";
+      }
+      {
+        mode = "n";
+        key = "<F2>";
+        action.__raw = "function() vim.lsp.buf.rename() end";
+        options.desc = "Rename Symbol";
+      }
+      {
+        mode = "n";
+        key = "<F12>";
+        action.__raw = "function() vim.lsp.buf.definition() end";
+        options.desc = "Go to Definition";
+      }
+      {
+        mode = "n";
+        key = "<S-F12>";
+        action.__raw = "function() vim.lsp.buf.references() end";
+        options.desc = "Find References";
+      }
+      {
+        mode = [
+          "n"
+          "v"
+        ];
+        key = "<C-.>";
+        action.__raw = "function() vim.lsp.buf.code_action() end";
+        options.desc = "Code Action";
+      }
+
       # --- Up/Down on wrapped lines ---
       {
         mode = [

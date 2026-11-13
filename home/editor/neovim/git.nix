@@ -4,6 +4,9 @@
 {
   programs.nixvim = {
     plugins = {
+      # Side-by-side diffs and file history (VS Code's diff editor / timeline).
+      diffview.enable = true;
+
       lazygit.enable = true;
       # --- Git ---
       gitsigns = {
@@ -22,6 +25,24 @@
       };
     };
     keymaps = [
+      {
+        mode = "n";
+        key = "<leader>gd";
+        action = "<cmd>DiffviewOpen<cr>";
+        options.desc = "Diff View (working tree)";
+      }
+      {
+        mode = "n";
+        key = "<leader>gD";
+        action = "<cmd>DiffviewClose<cr>";
+        options.desc = "Close Diff View";
+      }
+      {
+        mode = "n";
+        key = "<leader>gh";
+        action = "<cmd>DiffviewFileHistory %<cr>";
+        options.desc = "File History";
+      }
       {
         mode = "n";
         key = "<leader>gg";
