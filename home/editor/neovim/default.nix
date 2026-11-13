@@ -40,6 +40,7 @@
     ./format.nix
     ./debug.nix
     ./test.nix
+    ./tasks.nix
     ./devshell.nix
     ./languages/nix.nix
     ./languages/config-files.nix

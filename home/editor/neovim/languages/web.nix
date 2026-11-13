@@ -74,6 +74,8 @@ in
       vitest.enable = true;
     };
 
+    extraFiles."lua/lang_web.lua".source = ../lua/lang_web.lua;
+
     # Start the servers/formatters from the project (node_modules, then devenv).
     extraConfigLuaPost = ''
       local devshell = require("devshell")
@@ -82,6 +84,7 @@ in
       end
       devshell.conform("prettierd", { node = true })
       devshell.conform("prettier", { node = true })
+      require("lang_web").setup_dap() -- js-debug from the devshell
       devshell.register({ "javascript", "javascriptreact", "typescript", "typescriptreact" }, {
         { bin = "node", what = "runtime" },
         { bin = "vtsls", what = "TypeScript language server", version = false },

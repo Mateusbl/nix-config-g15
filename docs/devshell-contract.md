@@ -44,6 +44,7 @@ points at them with these variables:
 | `JDTLS_DEBUG_BUNDLE` | Java debugging (jdtls plugin)    | `com.microsoft.java.debug.plugin-*.jar`: a file, a directory of jars, or a glob                            |
 | `JDTLS_TEST_BUNDLES` | Java test running/debugging      | vscode-java-test server jars, `:`-separated; each a file, directory or glob                                |
 | `JDTLS_LOMBOK_JAR`   | Lombok support in jdtls          | path to `lombok.jar` (passed as `-javaagent`)                                                              |
+| `JUNIT_CONSOLE_JAR`  | Java tests through neotest       | path to `junit-platform-console-standalone-*.jar` (neotest-java would otherwise download it at runtime)    |
 | `JS_DEBUG_PATH`      | JavaScript/TypeScript debugging  | the `js-debug` program, its directory, or `dapDebugServer.js`. Without it, `js-debug` on `PATH` is used    |
 
 ## Editor-owned tools (nothing to provide)
@@ -64,6 +65,7 @@ nil, nixfmt, lua-language-server, stylua.
 | Debugging                 | `JDTLS_DEBUG_BUNDLE`                                | `vscode-extensions.vscjava.vscode-java-debug`   |
 | Test running              | `JDTLS_TEST_BUNDLES`                                | `vscode-extensions.vscjava.vscode-java-test`    |
 | Lombok (if the code uses it) | `JDTLS_LOMBOK_JAR`                               | `lombok`                                        |
+| neotest runner            | `JUNIT_CONSOLE_JAR`                                 | `fetchurl` from Maven Central (not in nixpkgs)  |
 
 ```nix
 # devenv.nix
@@ -86,6 +88,11 @@ in
     JDTLS_DEBUG_BUNDLE = "${ext.vscode-java-debug}/share/vscode/extensions/vscjava.vscode-java-debug/server";
     JDTLS_TEST_BUNDLES = "${ext.vscode-java-test}/share/vscode/extensions/vscjava.vscode-java-test/server";
     JDTLS_LOMBOK_JAR = "${pkgs.lombok}/share/java/lombok.jar";
+    # For neotest (<leader>tt, <leader>tr). Same version/hash neotest-java pins.
+    JUNIT_CONSOLE_JAR = "${pkgs.fetchurl {
+      url = "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.1/junit-platform-console-standalone-1.10.1.jar";
+      sha256 = "b42eaa53d13576d17db5fb8b280722a6ae9e36daf95f4262bc6e96d4cb20725f";
+    }}";
   };
 }
 ```
@@ -100,6 +107,9 @@ in
 | Debugging            | `python -m debugpy`                      | `debugpy` in the project's Python              |
 | Tests                | `python -m pytest`                       | `pytest` (+ `pytest-django`) in the project's Python |
 | Template formatting (optional) | `djlint`                       | `djlint`                                       |
+
+Tests run with pytest by default. For Django's own runner (`manage.py test`), set
+`my.neovim.languages.python.testRunner = "django";` in `home/default.nix`.
 
 `debugpy` and `pytest` must be importable by the project's `python`. They are not separate
 programs. Either add them to the venv (`uv add --dev debugpy pytest pytest-django`) or

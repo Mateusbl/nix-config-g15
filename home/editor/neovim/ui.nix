@@ -194,6 +194,10 @@ in
               group = "git";
             }
             {
+              __unkeyed-1 = "<leader>o";
+              group = "tasks (overseer)";
+            }
+            {
               __unkeyed-1 = "<leader>q";
               group = "quit/session";
             }

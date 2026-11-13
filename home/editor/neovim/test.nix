@@ -17,8 +17,29 @@ in
         enable = true;
       };
     };
+
+    # Every test adapter runs its commands with the project's devshell environment
+    # (lua/devshell.lua). Adapters are added in languages/*.nix.
+    extraConfigLuaPost = ''
+      for _, adapter in ipairs(require("neotest.config").adapters or {}) do
+        require("devshell").neotest(adapter)
+      end
+    '';
     keymaps = [
       # --- Neotest ---
+      # Additions (the original <leader>t maps below are unchanged)
+      {
+        mode = "n";
+        key = "<leader>td";
+        action.__raw = "function() require('neotest').run.run({ strategy = 'dap' }) end";
+        options.desc = "Debug Nearest (Neotest)";
+      }
+      {
+        mode = "n";
+        key = "<leader>tw";
+        action.__raw = "function() require('neotest').watch.toggle(vim.fn.expand('%')) end";
+        options.desc = "Toggle Watch File (Neotest)";
+      }
       {
         mode = "n";
         key = "<leader>tt";

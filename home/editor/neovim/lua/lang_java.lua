@@ -6,6 +6,7 @@
 --   JDTLS_DEBUG_BUNDLE  com.microsoft.java.debug.plugin-*.jar (file, directory or glob)
 --   JDTLS_TEST_BUNDLES  vscode-java-test server jars, ':'-separated (files, directories or globs)
 --   JDTLS_LOMBOK_JAR    lombok.jar, used as a -javaagent
+--   JUNIT_CONSOLE_JAR   junit-platform-console-standalone.jar, used by neotest-java
 
 local devshell = require("devshell")
 local M = {}
@@ -56,6 +57,32 @@ function M.setup()
       params.initializationOptions.bundles = M.bundles(config.root_dir)
     end,
   })
+end
+
+-- neotest-java runs tests with junit-platform-console-standalone.jar. Its own
+-- `:NeotestJava setup` downloads that jar at runtime, which this config avoids; the
+-- project provides it in JUNIT_CONSOLE_JAR instead. neotest-java takes the jar path
+-- when the adapter is created, so a fresh adapter with the project's jar is created
+-- for each run (cheap: it is only a table of functions).
+function M.setup_neotest()
+  local ok, config = pcall(require, "neotest.config")
+  if not ok then
+    return
+  end
+  for _, adapter in ipairs(config.adapters or {}) do
+    if adapter.name == "neotest-java" then
+      adapter.build_spec = function(args)
+        local where = args.tree:data().path
+        local jar = devshell.getenv(where, "JUNIT_CONSOLE_JAR")
+        if not jar or vim.fn.filereadable(jar) ~= 1 then
+          devshell.warn_missing(where, "JUNIT_CONSOLE_JAR (junit-platform-console-standalone.jar)", devshell.get(where))
+          return nil
+        end
+        local fresh = require("neotest-java")({ junit_jar = jar })
+        return devshell.neotest(fresh).build_spec(args)
+      end
+    end
+  end
 end
 
 return M

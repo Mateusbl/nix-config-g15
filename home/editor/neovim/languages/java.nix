@@ -86,6 +86,7 @@ in
 
     extraConfigLuaPost = ''
       require("lang_java").setup()
+      require("lang_java").setup_neotest()
       require("devshell").conform("google-java-format")
       require("devshell").register({ "java" }, {
         { bin = "java", what = "JDK", version = { "-version" } },
@@ -93,7 +94,7 @@ in
         { bin = "mvn", what = "Maven" },
         { bin = "gradle", what = "Gradle", version = false },
         { bin = "google-java-format", what = "formatter" },
-      }, { "JAVA_HOME", "JDTLS_DEBUG_BUNDLE", "JDTLS_TEST_BUNDLES", "JDTLS_LOMBOK_JAR" })
+      }, { "JAVA_HOME", "JDTLS_DEBUG_BUNDLE", "JDTLS_TEST_BUNDLES", "JDTLS_LOMBOK_JAR", "JUNIT_CONSOLE_JAR" })
     '';
   };
 }
