@@ -10,6 +10,9 @@
     ./editor/neovim # nixvim, split into one file per topic
     ./yazi.nix
     ./yazi-learn.nix
+    ./jujutsu.nix
+    ./desktop-scripts.nix
+    ./desktop-extras.nix
   ];
 
   home.stateVersion = "26.05";

@@ -4,6 +4,7 @@
     ./boot.nix
     # ./bootvine.nix # enable once nixos-unstable has services.bootvine, see the file
     ./storage.nix
+    ./snapshots.nix
     ./nix.nix
     ./nvidia.nix
     ./power-sleep.nix
@@ -12,5 +13,6 @@
     ./podman.nix
     ./stylix.nix
     ./users.nix
+    ./secrets.nix
   ];
 }

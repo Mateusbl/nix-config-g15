@@ -96,8 +96,13 @@
           (bindCall "SUPER + V" ''hl.dsp.window.float({ action = "toggle" })'')
           (bindCall "SUPER + F" "hl.dsp.window.fullscreen()")
 
-          # Region screenshot to clipboard
+          # Screenshots: region to clipboard; Shift = region to file; Ctrl = full screen to file
           (bindCall "Print" ''hl.dsp.exec_cmd("grim -g \"$(slurp)\" - | wl-copy")'')
+          (bindCall "SHIFT + Print" ''hl.dsp.exec_cmd("screenshot region")'')
+          (bindCall "CTRL + Print" ''hl.dsp.exec_cmd("screenshot full")'')
+
+          # Clipboard history
+          (bindCall "SUPER + SHIFT + V" ''hl.dsp.exec_cmd("clipboard-pick")'')
 
           # Focus
           (bindCall "SUPER + H" ''hl.dsp.focus({ direction = "left" })'')
@@ -112,7 +117,8 @@
           (bindCall "SUPER + SHIFT + J" ''hl.dsp.window.move({ direction = "down" })'')
           # Lock and power
           (bindCall "SUPER + Escape" ''hl.dsp.exec_cmd("loginctl lock-session")'')
-          (bindCall "SUPER + SHIFT + Escape" ''hl.dsp.exec_cmd("systemctl poweroff")'')
+          # Power menu (lock/suspend/reboot/poweroff/logout); needs an explicit choice.
+          (bindCall "SUPER + SHIFT + Escape" ''hl.dsp.exec_cmd("power-menu")'')
 
           # Resize (repeating)
           (bindOpts "SUPER + CTRL + H" "hl.dsp.window.resize({ x = -40, y = 0, relative = true })" {
@@ -160,6 +166,12 @@
             locked = true;
             repeating = true;
           })
+
+          # Media keys (go to the last used player, see playerctld in session.nix)
+          (bindOpts "XF86AudioPlay" ''hl.dsp.exec_cmd("playerctl play-pause")'' { locked = true; })
+          (bindOpts "XF86AudioPause" ''hl.dsp.exec_cmd("playerctl play-pause")'' { locked = true; })
+          (bindOpts "XF86AudioNext" ''hl.dsp.exec_cmd("playerctl next")'' { locked = true; })
+          (bindOpts "XF86AudioPrev" ''hl.dsp.exec_cmd("playerctl previous")'' { locked = true; })
 
           # Mute keys
           (bindOpts "XF86AudioMute" ''hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")'' {

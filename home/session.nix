@@ -84,8 +84,15 @@
           "cpu"
           "memory"
           "battery"
+          "tray" # icons of apps that live in the background (nm-applet, blueman, ...)
         ];
         clock.format = "{:%Y-%m-%d %H:%M}";
+        pulseaudio = {
+          format = "VOL {volume}%";
+          format-muted = "MUTED";
+          on-click = "pavucontrol"; # mixer: per-app volume, outputs, inputs
+        };
+        tray.spacing = 8;
         battery = {
           format = "BAT {capacity}%";
           format-charging = "CHG {capacity}%";
@@ -95,12 +102,25 @@
     };
   };
 
+  # Clipboard history: a wl-paste watcher (systemd user service, started with the graphical
+  # session like mako/hyprpaper/waybar). SUPER+SHIFT+V picks from it (clipboard-pick).
+  services.cliphist.enable = true;
+
+  # Media keys: playerctl talks to any MPRIS player (mpv, Firefox, Spotify, ...).
+  # playerctld remembers the player you used last, so the keys go to that one.
+  services.playerctld.enable = true;
+
   programs.firefox.enable = true;
   stylix.targets.firefox.profileNames = [ "default" ];
 
   home.packages = with pkgs; [
     mousepad
     brightnessctl
+    playerctl
+    # Volume mixer. pavucontrol rather than wiremix: it is mature, is opened by clicking the
+    # Waybar volume module, and is a GTK app that Stylix themes. wiremix (a TUI) works too,
+    # but mixing per-app volumes is quicker with a mouse.
+    pavucontrol
     wl-clipboard
     grim
     slurp

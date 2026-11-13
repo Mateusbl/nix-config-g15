@@ -27,3 +27,10 @@ Decisions only you can make. Until you answer, the config uses the default given
 7. **smart-enter on `l`?** The smart-enter plugin is meant to replace `l` (enter a directory
    *or* open a file). That changes a default key, so the tutorials would no longer match.
    *Default: smart-enter on `<C-l>`, `l` unchanged.*
+
+## Baseline
+
+8. **Off-disk backups: which target drive?** `/home` gets local btrfs snapshots (btrbk, hourly
+   and daily, `modules/nixos/snapshots.nix`). They live on the same disk, so they don't help if
+   the disk dies or the laptop is lost. btrbk can send them to an external btrfs drive or over
+   SSH once you name a target. *Default: local snapshots only.*

@@ -25,6 +25,8 @@ modules/nixos/                 shared system modules, one topic per file
   boot.nix                     systemd-boot, latest kernel, git revision in generations
   bootvine.nix                 live systemd boot screen (off for now, see below)
   storage.nix                  btrfs auto-scrub
+  snapshots.nix                hourly/daily btrfs snapshots of /home (btrbk)
+  secrets.nix                  oo7 as the only Secret Service (+ PAM unlock, portal)
   nix.nix                      nix settings, flake registry, GC, nh
   nvidia.nix                   PRIME offload (Intel iGPU + NVIDIA dGPU)
   power-sleep.nix              lid/power key, suspend-then-hibernate, thermald
@@ -37,6 +39,10 @@ home/                          home-manager modules, one topic per file
   shell.nix  git.nix  cli.nix  session.nix  hyprland.nix  vscode.nix
   editor/neovim/               nixvim, one file per topic (see the Editor section)
   yazi.nix, yazi-learn.nix     Yazi file manager and its lessons (yazi-learn/ has the generator)
+  identity.nix                 name + email, shared by git.nix and jujutsu.nix
+  jujutsu.nix                  jj (colocated with git), jjui, SSH agent
+  desktop-scripts.nix          power menu, screenshots, clipboard picker; XDG user dirs
+  desktop-extras.nix           optional: night light, colour picker, screen recorder
 docs/                          Neovim docs, devshell contract, open questions (questions.md)
 tests/nvim-smoke.sh            headless Neovim smoke test
 assets/nix-bg.png              wallpaper used by Stylix
@@ -224,6 +230,56 @@ cheatsheet are generated from the installed Yazi's real keymap at build time; se
 `docs/yazi-lessons.md`.
 
 Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y` in Neovim.
+
+## Desktop keys and helpers
+
+| Key | Does |
+| --- | --- |
+| `SUPER+Escape` | lock |
+| `SUPER+SHIFT+Escape` | power menu (rofi): lock, suspend, reboot, poweroff, logout. Nothing happens unless you pick one |
+| `Print` | region screenshot to the clipboard |
+| `Shift+Print` / `Ctrl+Print` | region / full screen to `~/Pictures/Screenshots`, with a notification |
+| `SUPER+SHIFT+V` | clipboard history (cliphist, started with the session) |
+| `XF86AudioPlay/Next/Prev` | media control via playerctl, sent to the last used player (playerctld) |
+
+- Waybar shows a tray. Clicking the volume opens pavucontrol.
+- Optional, off by default, in `home/desktop-extras.nix`:
+  - `my.desktop.nightLight.enable`: hyprsunset, warmer colours from 20:00.
+  - `my.desktop.colorPicker.enable`: hyprpicker on `SUPER+SHIFT+C`.
+  - `my.desktop.screenRecorder.enable`: wf-recorder on `SUPER+SHIFT+R`. It records a region and encodes on the CPU, so it works with the NVIDIA hybrid setup.
+
+## Secrets: oo7
+
+`modules/nixos/secrets.nix` makes [oo7](https://github.com/linux-credentials/oo7) the only Secret
+Service. The keyring unlocks with your ly login password. The CLI is `oo7-cli` (store / lookup /
+search / delete). gnome-keyring is forced off. Verification steps, gaps and the fallback are in
+`docs/oo7-notes.md`.
+
+## Version control: jj + git
+
+Git and [Jujutsu](https://jj-vcs.github.io) share one identity (`home/identity.nix`).
+- jj repos are colocated, so git, lazygit and gitsigns keep working.
+- Diffs go through delta. The TUI is `jjui`.
+- Remotes are reached over SSH through `services.ssh-agent`. No keys are created; run `ssh-add` once per session.
+- There is no `gh`; pull requests are made in the browser.
+
+git → jj translations are in `docs/jj-cheatsheet.md`.
+
+## Snapshots of /home
+
+`modules/nixos/snapshots.nix` runs btrbk hourly and keeps 24 hourly plus 7 daily read-only
+snapshots of the `home` subvolume in `/.snapshots` (root only). To get a file back:
+
+```bash
+sudo ls /.snapshots
+```
+
+```bash
+sudo cp /.snapshots/home.<date>/<user>/path/to/file ~/path/to/file
+```
+
+These snapshots are on the same disk, so they are **not** a backup. The off-disk target is an
+open question in `docs/questions.md`.
 
 ## Binary caches
 

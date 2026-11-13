@@ -1,10 +1,13 @@
+# Git (over SSH; no gh). Identity comes from ./identity.nix, shared with Jujutsu.
+let
+  identity = import ./identity.nix;
+in
 {
   programs.git = {
     enable = true;
     settings = {
       user = {
-        name = "Mateus Barbosa Lopes";
-        email = "mateusbarbosa999@gmail.com";
+        inherit (identity) name email;
       };
       init.defaultBranch = "main";
       pull.rebase = true;
