@@ -12,7 +12,6 @@ in
       vim-dadbod-ui: browse and query databases. Connections come from your environment
       (DATABASE_URL / DBUI_URL, e.g. set by a project's devenv) or are added in the UI, which
       saves them under ~/.local/share/db_ui. Never put credentials in this repository'';
-    claude.enable = lib.mkEnableOption "claudecode.nvim: Claude Code integration (needs the `claude` CLI on PATH)";
   };
 
   config.programs.nixvim = lib.mkMerge [
@@ -56,27 +55,6 @@ in
           key = "<leader>Du";
           action = "<cmd>DBUIToggle<cr>";
           options.desc = "Toggle Database UI";
-        }
-      ];
-    })
-
-    (lib.mkIf cfg.claude.enable {
-      plugins.claudecode.enable = true;
-      # nixvim would install the claude-code CLI (unfree, and nixvim's own nixpkgs does not
-      # allow unfree). Use the `claude` already on your PATH instead.
-      dependencies.claude-code.enable = false;
-      keymaps = [
-        {
-          mode = "n";
-          key = "<leader>ac";
-          action = "<cmd>ClaudeCode<cr>";
-          options.desc = "Toggle Claude";
-        }
-        {
-          mode = "v";
-          key = "<leader>as";
-          action = "<cmd>ClaudeCodeSend<cr>";
-          options.desc = "Send Selection to Claude";
         }
       ];
     })

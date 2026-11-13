@@ -1,14 +1,18 @@
-# VS Code. Replaces Neovim as the main editor.
+# VS Code, kept until the Neovim acceptance checklist passes (see docs/questions.md).
+#
+# Plain pkgs.vscode, not vscode-fhs: no FHS shims in this config (CLAUDE.md). Extensions
+# come only from nixpkgs (pkgs.vscode-extensions). Marketplace extensions that ship
+# prebuilt binaries may therefore not run; that is accepted.
 { pkgs, ... }:
 
 {
   programs.vscode = {
     enable = true;
-    # FHS wrapper: extensions that ship prebuilt binaries (Java, debuggers) just work.
-    package = pkgs.vscode-fhs;
+    package = pkgs.vscode;
 
-    # Lets you try marketplace extensions before pinning them here.
-    mutableExtensionsDir = true;
+    # Extensions are read-only and come only from the list below. home-manager defaults
+    # this to true when there is a single profile, so it is set explicitly.
+    mutableExtensionsDir = false;
 
     profiles.default = {
       enableUpdateCheck = false;

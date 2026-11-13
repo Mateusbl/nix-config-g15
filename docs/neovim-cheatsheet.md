@@ -120,7 +120,6 @@ Keys marked *VS Code alias* are additions. The original keys still work.
 | ------------------------------- | -------------------------------------- |
 | `http`: kulala                  | `<leader>Rs` send request, `<leader>Ra` send all |
 | `database`: dadbod-ui           | `<leader>Du` toggle UI                 |
-| `claude`: claudecode            | `<leader>ac` toggle, `<leader>as` send selection (visual) |
 
 `<C-S-…>` keys need a terminal that reports them. Ghostty does, through the kitty keyboard
 protocol that Neovim turns on. If one does nothing, use the leader key next to it.

@@ -158,6 +158,12 @@ Rejected:
 
 The laptop's number is not measured yet. `tests/nvim-smoke.sh` prints it.
 
+## Claude Code
+
+claudecode.nvim was an optional module in an earlier version. It was removed because of the
+repository rule "never install Claude Code" (CLAUDE.md), even though the plugin itself is
+only a client.
+
 ## Structure
 
 - Extra files beyond the requested list: `treesitter.nix` (syntax trees fit no other
@@ -168,18 +174,6 @@ The laptop's number is not measured yet. `tests/nvim-smoke.sh` prints it.
 - No existing keymap was renamed. Every VS Code key is an alias added next to the
   original.
 
-## Questions for me
+## Questions
 
-1. **Angular.** Do you use Angular anywhere? If yes, angularls can come back as a project
-   server (one line in `languages/web.nix` plus `@angular/language-server` in that devenv).
-2. **Startup on the laptop.** Run `tests/nvim-smoke.sh` and look at the last line. If it is
-   above 80 ms, do you want lazy-loading (more config per plugin) or is it fine as is?
-3. **Django test runner.** Do your Django projects use pytest-django (default here) or
-   `manage.py test`? Set `my.neovim.languages.python.testRunner` accordingly.
-4. **Spring Boot language server.** Is STS4 support (Spring-aware completion in
-   `application.properties`, bean navigation) worth packaging the extension jar yourself?
-   That would be a per-project `fetchurl`, like the JUnit jar.
-5. **Ghostty keys.** Do `<C-S-p>`, `<C-S-f>` and `<C-S-m>` reach Neovim on your setup? If
-   not, I can map them to other keys.
-6. **VS Code.** `home/vscode.nix` stays until you confirm the acceptance checklist. Should it
-   be removed afterwards, or kept as a fallback?
+Open questions live in `docs/questions.md`.

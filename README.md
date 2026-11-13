@@ -8,6 +8,8 @@ My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobi
 - **User environment:** home-manager as a NixOS module
 - **Editor:** Neovim (nixvim) set up for Java/Spring, Python (Django, FastAPI) and TypeScript/React. Project toolchains come from each project's devenv. VS Code is still installed
 
+Rules for working on this repository (also for AI assistants) are in `CLAUDE.md`.
+
 ## Layout
 
 ```
@@ -34,7 +36,7 @@ modules/nixos/                 shared system modules, one topic per file
 home/                          home-manager modules, one topic per file
   shell.nix  git.nix  cli.nix  session.nix  hyprland.nix  vscode.nix
   editor/neovim/               nixvim, one file per topic (see the Editor section)
-docs/                          Neovim audit, cheatsheet, decisions, devshell contract
+docs/                          Neovim docs, devshell contract, open questions (questions.md)
 tests/nvim-smoke.sh            headless Neovim smoke test
 assets/nix-bg.png              wallpaper used by Stylix
 ```
@@ -164,7 +166,7 @@ That's why the import is commented out in `modules/nixos/default.nix`. To turn i
 | `languages/python.nix` | pyright, ruff, debugpy, pytest or Django runner, Django templates |
 | `languages/web.nix` | vtsls, ESLint, Tailwind, biome/prettier, js-debug, jest/vitest |
 | `languages/nix.nix`, `languages/config-files.nix` | nil, nixfmt; JSON/YAML (SchemaStore), TOML, Markdown, shell, Docker, HTML/CSS |
-| `optional.nix` | off by default: kulala (HTTP), vim-dadbod-ui (databases), claudecode |
+| `optional.nix` | off by default: kulala (HTTP), vim-dadbod-ui (databases) |
 | `performance.nix` | Lua loader, byte-compiled config, merged plugin directory |
 
 **Who provides what.** The editor installs only language-agnostic tools: nil, nixfmt,
@@ -192,13 +194,13 @@ Switches (set in `home/default.nix`):
 my.neovim.languages.java.enable = false;          # also: python, web
 my.neovim.debug.enable = false;                   # also: test, tasks
 my.neovim.languages.python.testRunner = "django"; # default "pytest"
-my.neovim.optional.http.enable = true;            # also: database, claude
+my.neovim.optional.http.enable = true;            # also: database
 ```
 
 ### VS Code
 
-`home/vscode.nix`: the FHS build, so extensions with native binaries work. It comes with
-nix-ide (nil + nixfmt), direnv and vim. Stylix themes it.
+`home/vscode.nix`: plain `pkgs.vscode` with read-only extensions from nixpkgs only (nix-ide,
+direnv, vim). Stylix themes it. Whether it stays is an open question in `docs/questions.md`.
 
 ## Binary caches
 
