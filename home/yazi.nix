@@ -1,7 +1,7 @@
 # Yazi, the terminal file manager.
 #
-# Yazi's DEFAULT keymap is kept as it is, so tutorials and `yazi-learn` (home/yazi-learn.nix)
-# match. Additions only use keys that are free in the default keymap.
+# Yazi's DEFAULT keymap is kept as it is, so tutorials match. Additions only use keys that
+# are free in the default keymap.
 { pkgs, ... }:
 
 {

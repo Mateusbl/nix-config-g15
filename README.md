@@ -38,7 +38,7 @@ modules/nixos/                 shared system modules, one topic per file
 home/                          home-manager modules, one topic per file
   shell.nix  git.nix  cli.nix  session.nix  hyprland.nix  vscode.nix
   editor/neovim/               nixvim, one file per topic (see the Editor section)
-  yazi.nix, yazi-learn.nix     Yazi file manager and its lessons (yazi-learn/ has the generator)
+  yazi.nix                     Yazi file manager
   identity.nix                 name + email, shared by git.nix and jujutsu.nix
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
   desktop-scripts.nix          power menu, screenshots, clipboard picker; XDG user dirs
@@ -224,10 +224,6 @@ tutorials match.
   (`M`), chmod (`c m`). There is also "reveal in Thunar" (`g r`). All of these keys are unused
   in Yazi's defaults.
 - **Help:** Yazi's live help is `~` or `<F1>`. To debug the setup, run `ya env`.
-
-**Learning:** `yazi-learn start`, then `yazi-learn lesson`. The 12 lessons, the quiz and the
-cheatsheet are generated from the installed Yazi's real keymap at build time; see
-`docs/yazi-lessons.md`.
 
 Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y` in Neovim.
 
