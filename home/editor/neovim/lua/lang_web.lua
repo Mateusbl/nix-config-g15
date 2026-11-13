@@ -7,33 +7,33 @@
 local devshell = require("devshell")
 local M = {}
 
--- Command that starts js-debug's DAP server for `where`, as { cmd, args... }, or nil.
--- JS_DEBUG_PATH may be the program, the directory it is in, or dapDebugServer.js.
-function M.js_debug_cmd(where)
-  local p = devshell.getenv(where, "JS_DEBUG_PATH")
-  if p and p ~= "" then
-    if p:match("%.js$") then
-      return { devshell.resolve(where, "node") or "node", p }
-    end
-    if vim.fn.isdirectory(p) == 1 then
-      for _, candidate in ipairs({ p .. "/bin/js-debug", p .. "/js-debug", p .. "/src/dapDebugServer.js" }) do
-        if vim.fn.filereadable(candidate) == 1 then
-          return M.js_debug_cmd_from(candidate, where)
-        end
-      end
-    elseif vim.fn.executable(p) == 1 then
-      return { p }
-    end
-  end
-  local bin = devshell.resolve(where, "js-debug")
-  return bin and { bin } or nil
-end
-
-function M.js_debug_cmd_from(path, where)
+-- { cmd, args... } for a js-debug file: dapDebugServer.js runs with node, the
+-- `js-debug` program runs directly.
+local function cmd_for(path, where)
   if path:match("%.js$") then
     return { devshell.resolve(where, "node") or "node", path }
   end
   return { path }
+end
+
+-- Command that starts js-debug's DAP server for `where`, or nil.
+-- JS_DEBUG_PATH may be the program, the directory it is in, or dapDebugServer.js;
+-- without it, `js-debug` on the project's PATH is used.
+function M.js_debug_cmd(where)
+  local p = devshell.getenv(where, "JS_DEBUG_PATH")
+  if p and p ~= "" then
+    if vim.fn.isdirectory(p) == 1 then
+      for _, candidate in ipairs({ p .. "/bin/js-debug", p .. "/js-debug", p .. "/src/dapDebugServer.js" }) do
+        if vim.fn.filereadable(candidate) == 1 then
+          return cmd_for(candidate, where)
+        end
+      end
+    elseif vim.fn.filereadable(p) == 1 then
+      return cmd_for(p, where)
+    end
+  end
+  local bin = devshell.resolve(where, "js-debug")
+  return bin and { bin } or nil
 end
 
 function M.setup_dap()

@@ -18,10 +18,16 @@ nixvim's `plugins.lsp.servers.*` already generates exactly those calls (checked 
 generated `init.lua`), so no migration away from `plugins.lsp` is needed for the API itself.
 
 How this was measured: the nixvim package was built from the flake
-(`programs.nixvim.build.package` of the home-manager user) and started headless.
+(`programs.nixvim.build.package` of the home-manager user) and started together with the
+`~/.config/nvim` that home-manager generates, in a real terminal (pty).
 
-- Startup: **39 ms** (`nvim --headless --startuptime`), no Lua errors, empty `:messages`.
+- No Lua errors, empty `:messages`.
 - 43 plugins in the pack directory.
+- Startup: about **195 ms** (median of 6 runs, `--startuptime`, on the cloud VM used for this
+  work, so expect a faster number on the laptop).
+
+> Correction: the first version of this audit said 39 ms. That run did not load the config
+> at all (in home-manager mode `init.lua` is not part of the nixvim package), so it was wrong.
 
 ## What exists
 

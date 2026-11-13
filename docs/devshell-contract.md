@@ -50,7 +50,9 @@ points at them with these variables:
 ## Editor-owned tools (nothing to provide)
 
 These come with Neovim and work everywhere, inside or outside a devshell:
-nil, nixfmt, lua-language-server, stylua.
+nil, nixfmt, lua-language-server, stylua, bash-language-server, shellcheck, shfmt, taplo,
+marksman, mdformat, yaml-language-server, vscode-langservers-extracted (JSON, HTML, CSS),
+dockerfile-language-server, docker-compose-language-service.
 
 ## Stacks
 

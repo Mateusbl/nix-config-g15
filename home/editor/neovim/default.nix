@@ -43,6 +43,7 @@
     ./tasks.nix
     ./devshell.nix
     ./optional.nix
+    ./performance.nix
     ./languages/nix.nix
     ./languages/config-files.nix
     ./languages/java.nix

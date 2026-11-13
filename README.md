@@ -5,7 +5,8 @@ My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobi
 - **Desktop:** Hyprland (Lua config) started through UWSM, with the `ly` display manager, Waybar, Rofi, Mako, hyprlock/hypridle and Ghostty
 - **Theme:** Stylix with a custom palette based on the NixOS logo colours (`assets/nix-bg.png`)
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
-- **User environment:** home-manager as a NixOS module. Neovim (nixvim) and VS Code are both installed
+- **User environment:** home-manager as a NixOS module
+- **Editor:** Neovim (nixvim) set up for Java/Spring, Python (Django, FastAPI) and TypeScript/React. Project toolchains come from each project's devenv. VS Code is still installed
 
 ## Layout
 
@@ -33,6 +34,8 @@ modules/nixos/                 shared system modules, one topic per file
 home/                          home-manager modules, one topic per file
   shell.nix  git.nix  cli.nix  session.nix  hyprland.nix  vscode.nix
   editor/neovim/               nixvim, one file per topic (see the Editor section)
+docs/                          Neovim audit, cheatsheet, decisions, devshell contract
+tests/nvim-smoke.sh            headless Neovim smoke test
 assets/nix-bg.png              wallpaper used by Stylix
 ```
 
@@ -142,14 +145,60 @@ That's why the import is commented out in `modules/nixos/default.nix`. To turn i
 
 ## Editor
 
-- **VS Code** (`home/vscode.nix`): the FHS build, so extensions with native binaries work. It comes with nix-ide (nil + nixfmt), direnv and vim. Stylix themes it.
-- **Neovim** (`home/editor/neovim/`): nixvim, split into one file per topic
-  (`options`, `ui`, `navigation`, `keymaps`, `completion`, `treesitter`, `git`, `lsp`, `format`,
-  `test`, `debug`) plus `languages/{java,python,web,nix,config-files}.nix`. Debugging, testing
-  and the Java/Python/web languages can be switched off with `my.neovim.*.enable`.
+### Neovim
 
-Project toolchains (language servers, formatters, JDKs…) come from each project's
-`devenv`/direnv shell, not from the global config.
+`home/editor/neovim/` is a nixvim configuration, one file per topic:
+
+| File | What it does |
+| --- | --- |
+| `default.nix` | entry point, `my.neovim.*` switches, editor-wide tools (ripgrep, fd, fzf, lazygit) |
+| `options.nix`, `keymaps.nix` | editor options and core keymaps (leader = Space), plus VS Code aliases (`<C-p>`, `<C-S-p>`, `<C-S-f>`, F2, F12, `<C-.>`, …) |
+| `ui.nix` | Stylix colours (transparent inside Ghostty), lualine, bufferline, which-key, noice, dropbar breadcrumbs |
+| `navigation.nix` | neo-tree, oil, fzf-lua, flash, grug-far, trouble, todo-comments, persistence, toggleterm, undotree |
+| `completion.nix`, `treesitter.nix` | blink.cmp + snippets; treesitter, text objects, sticky scroll |
+| `lsp.nix`, `format.nix` | LSP keymaps and inlay hints; conform.nvim (format on save, `<leader>uf` toggles) |
+| `git.nix` | gitsigns, lazygit, diffview |
+| `debug.nix`, `test.nix`, `tasks.nix` | nvim-dap + UI (reads `.vscode/launch.json`), neotest, overseer (reads `.vscode/tasks.json`) |
+| `devshell.nix` + `lua/devshell.lua` | starts every project tool inside that project's direnv environment |
+| `languages/java.nix` | jdtls (workspace per project), Java debugging/tests, Spring Boot run task |
+| `languages/python.nix` | pyright, ruff, debugpy, pytest or Django runner, Django templates |
+| `languages/web.nix` | vtsls, ESLint, Tailwind, biome/prettier, js-debug, jest/vitest |
+| `languages/nix.nix`, `languages/config-files.nix` | nil, nixfmt; JSON/YAML (SchemaStore), TOML, Markdown, shell, Docker, HTML/CSS |
+| `optional.nix` | off by default: kulala (HTTP), vim-dadbod-ui (databases), claudecode |
+| `performance.nix` | Lua loader, byte-compiled config, merged plugin directory |
+
+**Who provides what.** The editor installs only language-agnostic tools: nil, nixfmt,
+lua-language-server, stylua, bash-language-server, shellcheck, shfmt, taplo, marksman,
+mdformat, and the JSON/YAML/HTML/CSS/Docker servers. Each project's devenv provides its own
+JDK, jdtls, Python, pyright, ruff, Node, vtsls, eslint, prettier, debug adapters and test
+runners. `docs/devshell-contract.md` lists what each stack needs, with a `devenv.nix` example.
+
+**How project tools are found.** For each file, Neovim looks for the nearest `.envrc`, loads
+that environment once (if `direnv allow` was run) and starts the project's tools with it.
+Two projects open at the same time each use their own toolchain. Without a devshell the editor
+still works: config files get full LSP and formatting, and project languages show one clear
+message such as `jdtls not found: no devshell here`.
+- `:DevshellStatus` (`<leader>cD`) shows the `.envrc` state and every expected tool with its path and version.
+- `:DevshellReload` reloads the environments after you change a devshell.
+
+**Docs:**
+- `docs/neovim-cheatsheet.md`: VS Code action → key
+- `docs/neovim-decisions.md`: why things are the way they are, and open questions
+- `docs/neovim-audit.md`: the starting point
+
+Switches (set in `home/default.nix`):
+
+```nix
+my.neovim.languages.java.enable = false;          # also: python, web
+my.neovim.debug.enable = false;                   # also: test, tasks
+my.neovim.languages.python.testRunner = "django"; # default "pytest"
+my.neovim.optional.http.enable = true;            # also: database, claude
+```
+
+### VS Code
+
+`home/vscode.nix`: the FHS build, so extensions with native binaries work. It comes with
+nix-ide (nil + nixfmt), direnv and vim. Stylix themes it.
 
 ## Binary caches
 
@@ -176,6 +225,15 @@ nix build .#nixosConfigurations.g15.config.system.build.diskoScript
 The first checks the flake outputs and evaluates the whole NixOS configuration. The second
 instantiates the system closure. The third builds the disko partitioning script without
 running it.
+
+After switching, check Neovim with:
+
+```bash
+tests/nvim-smoke.sh
+```
+
+It opens a file of every supported language headless, fails on any Lua error, and prints the
+startup time.
 
 Known evaluation warnings that don't break anything:
 
