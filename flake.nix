@@ -10,8 +10,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Phase 1 of the VS Code migration: still here so you can fall back.
-    # Phase 3: delete this input, the sharedModules line below and home/neovim.nix.
+    # Neovim configuration framework used by home/editor/neovim.
     nixvim = {
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";

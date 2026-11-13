@@ -5,7 +5,7 @@ My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobi
 - **Desktop:** Hyprland (Lua config) started through UWSM, with the `ly` display manager, Waybar, Rofi, Mako, hyprlock/hypridle and Ghostty
 - **Theme:** Stylix with a custom palette based on the NixOS logo colours (`assets/nix-bg.png`)
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
-- **User environment:** home-manager as a NixOS module. VS Code is the main editor; nixvim is kept as a fallback
+- **User environment:** home-manager as a NixOS module. Neovim (nixvim) and VS Code are both installed
 
 ## Layout
 
@@ -31,7 +31,8 @@ modules/nixos/                 shared system modules, one topic per file
   stylix.nix                   theme, fonts, opacity
   users.nix                    user account, zsh
 home/                          home-manager modules, one topic per file
-  shell.nix  git.nix  cli.nix  session.nix  hyprland.nix  vscode.nix  neovim.nix
+  shell.nix  git.nix  cli.nix  session.nix  hyprland.nix  vscode.nix
+  editor/neovim/               nixvim, one file per topic (see the Editor section)
 assets/nix-bg.png              wallpaper used by Stylix
 ```
 
@@ -142,7 +143,10 @@ That's why the import is commented out in `modules/nixos/default.nix`. To turn i
 ## Editor
 
 - **VS Code** (`home/vscode.nix`): the FHS build, so extensions with native binaries work. It comes with nix-ide (nil + nixfmt), direnv and vim. Stylix themes it.
-- **nixvim** (`home/neovim.nix`): the old Neovim setup, kept as a fallback. To remove it, delete the `nixvim` input, the `sharedModules` line in `flake.nix` and the `./neovim.nix` import in `home/default.nix`.
+- **Neovim** (`home/editor/neovim/`): nixvim, split into one file per topic
+  (`options`, `ui`, `navigation`, `keymaps`, `completion`, `treesitter`, `git`, `lsp`, `format`,
+  `test`, `debug`) plus `languages/{java,python,web,nix,config-files}.nix`. Debugging, testing
+  and the Java/Python/web languages can be switched off with `my.neovim.*.enable`.
 
 Project toolchains (language servers, formatters, JDKs…) come from each project's
 `devenv`/direnv shell, not from the global config.
@@ -175,7 +179,7 @@ running it.
 
 Known evaluation warnings that don't break anything:
 
-- nixvim warns that its nixpkgs `follows` differs from its own pin. This goes away when nixvim is removed.
+- nixvim warns that its nixpkgs `follows` differs from its own pin. The `follows` is on purpose (one nixpkgs for the whole system).
 - Stylix sets `programs.rofi.font`, which is deprecated upstream.
 
 ## License

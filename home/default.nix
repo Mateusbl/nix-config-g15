@@ -7,7 +7,7 @@
     ./session.nix
     ./hyprland.nix
     ./vscode.nix
-    ./neovim.nix # Phase 3 of the VS Code migration: remove this line (and the nixvim input)
+    ./editor/neovim # nixvim, split into one file per topic
   ];
 
   home.stateVersion = "26.05";
