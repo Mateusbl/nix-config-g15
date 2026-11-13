@@ -1,19 +1,99 @@
-# Look and feel: colorscheme, dashboard, notifications, statusline, bufferline, which-key.
-{ pkgs, ... }:
+# Look and feel: colours, dashboard, notifications, statusline, bufferline, which-key.
+#
+# Colours come from Stylix (modules/nixos/stylix.nix), not from a colorscheme plugin.
+# Stylix's nixvim target loads mini.base16 with that palette; mini.base16 also themes
+# bufferline, which-key, neo-tree, blink.cmp, fzf-lua, noice, trouble, gitsigns and dap-ui.
+{ config, ... }:
 
-{
-  programs.nixvim = {
-    # ==========================================
-    # Colorscheme
-    # ==========================================
-    colorschemes.tokyonight = {
-      enable = true;
-      settings = {
-        style = "night";
-        transparent = false;
-        terminal_colors = true;
+let
+  # The same base16 palette Stylix uses everywhere else (Ghostty, Waybar, GTK, ...).
+  c = config.lib.stylix.colors.withHashtag;
+
+  # A lualine theme built from the palette. lualine's "auto" theme guesses from
+  # highlight groups and gets confused once Normal has no background.
+  # Section "c" has no background so the statusline shows the terminal through it.
+  mode = color: {
+    a = {
+      fg = c.base00;
+      bg = color;
+      gui = "bold";
+    };
+    b = {
+      fg = c.base05;
+      bg = c.base02;
+    };
+    c = {
+      fg = c.base04;
+      bg = "NONE";
+    };
+  };
+  lualineTheme = {
+    normal = mode c.base0D;
+    insert = mode c.base0B;
+    visual = mode c.base0E;
+    replace = mode c.base08;
+    command = mode c.base0A;
+    terminal = mode c.base0C;
+    inactive = {
+      a = {
+        fg = c.base04;
+        bg = "NONE";
+      };
+      b = {
+        fg = c.base04;
+        bg = "NONE";
+      };
+      c = {
+        fg = c.base03;
+        bg = "NONE";
       };
     };
+  };
+
+  # Highlight groups that would otherwise paint an opaque block inside Ghostty
+  # (terminal opacity 0.85). Floats and menus keep their base01 background on purpose:
+  # they need contrast to be readable.
+  #
+  # nixvim applies these with nvim_set_hl, which replaces the whole group, so each one
+  # also restores its palette foreground (otherwise line numbers etc. turn bright white).
+  clear = fg: {
+    inherit fg;
+    bg = "none";
+    ctermbg = "none";
+  };
+in
+{
+  # Stylix makes Normal, the sign column and the number column transparent.
+  stylix.targets.nixvim.transparentBackground = {
+    main = true;
+    signColumn = true;
+    numberLine = true;
+  };
+
+  programs.nixvim = {
+    highlightOverride = {
+      # Stylix makes these transparent; the fg values put the palette colours back.
+      Normal = clear c.base05;
+      NonText = clear c.base03;
+      SignColumn = clear c.base03;
+      LineNr = clear c.base03;
+      LineNrAbove = clear c.base03;
+      LineNrBelow = clear c.base03;
+      # Extra groups Stylix does not cover.
+      NormalNC = clear c.base05; # unfocused windows
+      EndOfBuffer = clear c.base03;
+      FoldColumn = clear c.base0C;
+      WinSeparator = clear c.base02;
+      CursorLineNr = clear c.base0D;
+      StatusLine = clear c.base04;
+      StatusLineNC = clear c.base03;
+      TabLineFill = clear c.base03;
+      # neo-tree copies Normal when it starts, so it needs its own entries.
+      NeoTreeNormal = clear c.base05;
+      NeoTreeNormalNC = clear c.base05;
+      NeoTreeEndOfBuffer = clear c.base03;
+    };
+
     plugins = {
       # --- Icons & core UI ---
       web-devicons.enable = true;
@@ -26,7 +106,11 @@
       };
       notify = {
         enable = true;
-        settings.timeout = 3000;
+        settings = {
+          timeout = 3000;
+          # nvim-notify needs a real colour to fade from when Normal is transparent.
+          background_colour = c.base00;
+        };
       };
 
       indent-blankline.enable = true;
@@ -70,7 +154,7 @@
       lualine = {
         enable = true;
         settings.options = {
-          theme = "auto";
+          theme = lualineTheme;
           globalstatus = true;
           disabled_filetypes.statusline = [
             "dashboard"
