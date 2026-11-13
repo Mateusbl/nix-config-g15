@@ -91,6 +91,7 @@
           (bindCall "SUPER + Q" "hl.dsp.window.close()")
           (bindCall "SUPER + M" ''hl.dsp.exec_cmd("uwsm stop")'')
           (bindCall "SUPER + E" ''hl.dsp.exec_cmd("thunar")'')
+          (bindCall "SUPER + SHIFT + E" ''hl.dsp.exec_cmd("ghostty -e yazi")'') # terminal file manager
           (bindCall "SUPER + D" ''hl.dsp.exec_cmd("rofi -show drun")'')
           (bindCall "SUPER + V" ''hl.dsp.window.float({ action = "toggle" })'')
           (bindCall "SUPER + F" "hl.dsp.window.fullscreen()")

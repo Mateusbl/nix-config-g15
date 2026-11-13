@@ -21,3 +21,9 @@ Decisions only you can make. Until you answer, the config uses the default given
    `fetchurl`, like the JUnit jar? It is not in nixpkgs. *Default: not set up.*
 6. **Ghostty keys.** Do `<C-S-p>`, `<C-S-f>` and `<C-S-m>` reach Neovim? If not, I can map
    them to other keys. *Default: keep them; the leader-key equivalents always work.*
+
+## Yazi
+
+7. **smart-enter on `l`?** The smart-enter plugin is meant to replace `l` (enter a directory
+   *or* open a file). That changes a default key, so the tutorials would no longer match.
+   *Default: smart-enter on `<C-l>`, `l` unchanged.*

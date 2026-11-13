@@ -8,6 +8,7 @@ in
 {
   options.my.neovim.optional = {
     http.enable = lib.mkEnableOption "kulala.nvim: run HTTP requests from .http files";
+    yazi.enable = lib.mkEnableOption "yazi.nvim: open Yazi in a floating window (<leader>y)";
     database.enable = lib.mkEnableOption ''
       vim-dadbod-ui: browse and query databases. Connections come from your environment
       (DATABASE_URL / DBUI_URL, e.g. set by a project's devenv) or are added in the UI, which
@@ -29,6 +30,18 @@ in
           key = "<leader>Ra";
           action.__raw = "function() require('kulala').run_all() end";
           options.desc = "Send All HTTP Requests";
+        }
+      ];
+    })
+
+    (lib.mkIf cfg.yazi.enable {
+      plugins.yazi.enable = true;
+      keymaps = [
+        {
+          mode = "n";
+          key = "<leader>y";
+          action = "<cmd>Yazi<cr>";
+          options.desc = "Yazi (current file)";
         }
       ];
     })

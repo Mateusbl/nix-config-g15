@@ -36,6 +36,7 @@ modules/nixos/                 shared system modules, one topic per file
 home/                          home-manager modules, one topic per file
   shell.nix  git.nix  cli.nix  session.nix  hyprland.nix  vscode.nix
   editor/neovim/               nixvim, one file per topic (see the Editor section)
+  yazi.nix, yazi-learn.nix     Yazi file manager and its lessons (yazi-learn/ has the generator)
 docs/                          Neovim docs, devshell contract, open questions (questions.md)
 tests/nvim-smoke.sh            headless Neovim smoke test
 assets/nix-bg.png              wallpaper used by Stylix
@@ -201,6 +202,28 @@ my.neovim.optional.http.enable = true;            # also: database
 
 `home/vscode.nix`: plain `pkgs.vscode` with read-only extensions from nixpkgs only (nix-ide,
 direnv, vim). Stylix themes it. Whether it stays is an open question in `docs/questions.md`.
+
+## Files: Yazi
+
+`home/yazi.nix` sets up [Yazi](https://yazi-rs.github.io) with its **default keymap**, so
+tutorials match.
+- **Start it:** `y` in zsh (cds to Yazi's last folder when you quit with `q`), or
+  `SUPER+SHIFT+E` (opens it in Ghostty). `SUPER+E` stays Thunar.
+- **Openers:** text and code → `$EDITOR` (Neovim), images → imv, audio/video → mpv, PDF →
+  zathura, archives → Yazi's extract (7zip), anything else → `xdg-open`. These are also the
+  desktop defaults. Directories still open in Thunar, and `text/plain` in Mousepad.
+- **Previews:** images (kitty graphics protocol, native in Ghostty), video, PDF, archives,
+  SVG, JSON, Markdown and code. The tools come with nixpkgs' Yazi wrapper.
+- **Plugins** (from nixpkgs `yaziPlugins`): git status signs, smart-enter (`<C-l>`), mount
+  (`M`), chmod (`c m`). There is also "reveal in Thunar" (`g r`). All of these keys are unused
+  in Yazi's defaults.
+- **Help:** Yazi's live help is `~` or `<F1>`. To debug the setup, run `ya env`.
+
+**Learning:** `yazi-learn start`, then `yazi-learn lesson`. The 12 lessons, the quiz and the
+cheatsheet are generated from the installed Yazi's real keymap at build time; see
+`docs/yazi-lessons.md`.
+
+Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y` in Neovim.
 
 ## Binary caches
 

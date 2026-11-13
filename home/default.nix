@@ -8,6 +8,8 @@
     ./hyprland.nix
     ./vscode.nix
     ./editor/neovim # nixvim, split into one file per topic
+    ./yazi.nix
+    ./yazi-learn.nix
   ];
 
   home.stateVersion = "26.05";
