@@ -158,6 +158,13 @@ Rejected:
 
 The laptop's number is not measured yet. `tests/nvim-smoke.sh` prints it.
 
+## Treesitter
+
+All grammars come from nixpkgs (nixvim's default `grammarPackages`, about 320 of them).
+`auto_install = false` is set explicitly. `:TSInstall`, `:TSInstallFromGrammar`, `:TSUpdate` and
+`:TSUninstall` are replaced after startup by a message, because they would download and
+compile grammars at runtime (CLAUDE.md).
+
 ## Claude Code
 
 claudecode.nvim was an optional module in an earlier version. It was removed because of the
