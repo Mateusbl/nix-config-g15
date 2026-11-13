@@ -24,5 +24,21 @@ in
 
     plugins.dap-python.enable = cfg.debug.enable;
     plugins.neotest.adapters.python.enable = cfg.test.enable;
+
+    # Start the servers/formatters from the project's devenv (lua/devshell.lua).
+    extraConfigLuaPost = ''
+      local devshell = require("devshell")
+      devshell.wrap_lsp("pyright")
+      devshell.wrap_lsp("ruff")
+      devshell.conform("ruff_format")
+      devshell.conform("ruff_organize_imports")
+      devshell.register({ "python" }, {
+        { bin = "python", what = "interpreter" },
+        { bin = "pyright", what = "type checker / language server" },
+        { bin = "ruff", what = "linter + formatter" },
+        { bin = "python", what = "debugpy", version = { "-c", "import debugpy; print('debugpy', debugpy.__version__)" } },
+        { bin = "python", what = "pytest", version = { "-m", "pytest", "--version" } },
+      })
+    '';
   };
 }

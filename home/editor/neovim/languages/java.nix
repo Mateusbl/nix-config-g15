@@ -2,7 +2,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
@@ -50,30 +49,10 @@ in
         enable = true;
         jdtLanguageServerPackage = null; # `package` would be the nvim-jdtls plugin itself, keep it
         settings = {
-          cmd = [
-            "jdtls"
-            "--jvm-arg=-javaagent:${pkgs.lombok}/share/java/lombok.jar"
-          ];
-
-          root_dir.__raw = "vim.fs.root(0, { 'gradlew', 'mvnw', 'pom.xml', 'build.gradle', '.git' })";
-
-          init_options.bundles.__raw = ''
-            (function()
-              local bundles = {}
-              local function add_jars(pattern)
-                for _, jar in ipairs(vim.split(vim.fn.glob(pattern, true), "\n")) do
-                  if jar ~= ""
-                    and not jar:match("runner%-jar%-with%-dependencies")
-                    and not jar:match("jacocoagent") then
-                    table.insert(bundles, jar)
-                  end
-                end
-              end
-              add_jars("${pkgs.vscode-extensions.vscjava.vscode-java-debug}/share/vscode/extensions/vscjava.vscode-java-debug/server/com.microsoft.java.debug.plugin-*.jar")
-              add_jars("${pkgs.vscode-extensions.vscjava.vscode-java-test}/share/vscode/extensions/vscjava.vscode-java-test/server/*.jar")
-              return bundles
-            end)()
-          '';
+          # Only the binary name: lua/devshell.lua finds it in the project's devenv and
+          # adds the Lombok agent and per-project arguments. Root detection comes from
+          # nvim-lspconfig (pom.xml, build.gradle, mvnw, gradlew, .git, ...) per buffer.
+          cmd = [ "jdtls" ];
 
           settings.java = {
             inlayHints.parameterNames.enabled = "all";
@@ -98,5 +77,23 @@ in
       neotest.adapters.java.enable = cfg.test.enable;
       conform-nvim.settings.formatters_by_ft.java = [ "google-java-format" ];
     };
+
+    # jdtls is project-owned: nixvim would otherwise put jdt-language-server on
+    # Neovim's PATH (lsp.servers.jdtls.package defaults to it).
+    lsp.servers.jdtls.package = null;
+
+    extraFiles."lua/lang_java.lua".source = ../lua/lang_java.lua;
+
+    extraConfigLuaPost = ''
+      require("lang_java").setup()
+      require("devshell").conform("google-java-format")
+      require("devshell").register({ "java" }, {
+        { bin = "java", what = "JDK", version = { "-version" } },
+        { bin = "jdtls", what = "language server", version = false },
+        { bin = "mvn", what = "Maven" },
+        { bin = "gradle", what = "Gradle", version = false },
+        { bin = "google-java-format", what = "formatter" },
+      }, { "JAVA_HOME", "JDTLS_DEBUG_BUNDLE", "JDTLS_TEST_BUNDLES", "JDTLS_LOMBOK_JAR" })
+    '';
   };
 }

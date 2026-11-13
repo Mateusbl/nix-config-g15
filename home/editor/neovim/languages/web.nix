@@ -73,5 +73,23 @@ in
       jest.enable = true;
       vitest.enable = true;
     };
+
+    # Start the servers/formatters from the project (node_modules, then devenv).
+    extraConfigLuaPost = ''
+      local devshell = require("devshell")
+      for _, server in ipairs({ "vtsls", "eslint", "tailwindcss", "angularls" }) do
+        devshell.wrap_lsp(server)
+      end
+      devshell.conform("prettierd", { node = true })
+      devshell.conform("prettier", { node = true })
+      devshell.register({ "javascript", "javascriptreact", "typescript", "typescriptreact" }, {
+        { bin = "node", what = "runtime" },
+        { bin = "vtsls", what = "TypeScript language server", version = false },
+        { bin = "vscode-eslint-language-server", what = "ESLint language server", version = false },
+        { bin = "tailwindcss-language-server", what = "Tailwind language server", version = false },
+        { bin = "prettier", what = "formatter", node = true },
+        { bin = "js-debug", what = "debug adapter", version = false },
+      }, { "JS_DEBUG_PATH" })
+    '';
   };
 }

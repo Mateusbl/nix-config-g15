@@ -40,6 +40,7 @@
     ./format.nix
     ./debug.nix
     ./test.nix
+    ./devshell.nix
     ./languages/nix.nix
     ./languages/config-files.nix
     ./languages/java.nix
@@ -52,11 +53,6 @@
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
-
-    # Loads the project's direnv environment when you :cd into it.
-    extraPlugins = with pkgs.vimPlugins; [
-      direnv-vim
-    ];
 
     # Editor-level tools stay global; project toolchains live in devenv
     extraPackages = with pkgs; [
