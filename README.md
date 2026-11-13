@@ -23,7 +23,7 @@ hosts/
 modules/nixos/                 shared system modules, one topic per file
   base.nix                     networking, locale, system packages
   boot.nix                     systemd-boot, latest kernel, git revision in generations
-  bootvine.nix                 live systemd boot screen (+ a temporary copy of its module)
+  bootvine.nix                 live systemd boot screen (from bootvine's own flake)
   storage.nix                  btrfs auto-scrub
   snapshots.nix                hourly/daily btrfs snapshots of /home (btrbk)
   secrets.nix                  oo7 as the only Secret Service (+ PAM unlock, portal)
@@ -69,6 +69,100 @@ Nix only sees files that git tracks, so `git add` new files before you build.
 The flake output is `g15`, but the hostname is still `nixos` so it matches the
 running system. To rename the machine, change `hostname` in `flake.nix`. The
 first switch after that needs `nh os switch -H g15`.
+
+## Battery
+
+Tuning lives in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itself, see `nvidia.nix`):
+
+- **Profile follows the charger:** `power-saver` on battery, `balanced` on AC, set when the charger is (un)plugged and at boot. Waybar's `PWR <profile>` label cycles it on click (it is reset at the next plug/unplug).
+- **UPower:** low at 20%, critical at 10%, hibernate at 5%. The Waybar battery label shows `LOW` and `CRIT` at the first two.
+- **Wi-Fi power saving** is on.
+- Already there: thermald, zram, idle dimming (5 min), lock (10 min), screen off (11 min), suspend-then-hibernate (30 min idle, and on lid close after 2 h of sleep).
+- Not done, see `docs/questions.md`: 60 Hz on battery, Bluetooth off at boot, aggressive PCIe/USB power saving.
+
+## Disks (disko)
+
+`hosts/g15/disko.nix` describes the same layout the old generated
+`hardware-configuration.nix` mounted:
+
+| Partition | Size        | Contents                                                                                 |
+| --------- | ----------- | ---------------------------------------------------------------------------------------- |
+| ESP       | 1 GiB       | vfat → `/boot` (`fmask=0077,dmask=0077`)                                                 |
+| swap      | 20 GiB      | LUKS (`cryptswap`) → swap, also `boot.resumeDevice` for hibernation                      |
+| root      | rest        | LUKS (`cryptroot`) → btrfs: top level `/`, subvolumes `home` → `/home`, `nix` → `/nix`  |
+
+Every btrfs mount uses `compress=zstd,noatime`. These options used to be in `storage.nix`.
+
+Swap has to be at least as large as RAM for hibernation. Change `size` in `disko.nix` if
+the machine has more than 16 GiB.
+
+### Already installed machine
+
+The current machine was installed with the NixOS installer, not with disko. Its partitions
+don't have disko's GPT labels (`disk-main-ESP`, `disk-main-swap`, `disk-main-root`).
+`hosts/g15/existing-install.nix` points the LUKS devices and `/boot` back at their existing
+UUIDs, so `nh os switch` keeps working and nothing is reformatted. The only visible change is
+that the LUKS mappings are now named `/dev/mapper/cryptroot` and `/dev/mapper/cryptswap`.
+
+You can drop `existing-install.nix` (and its import in `hosts/g15/default.nix`) after either of these:
+
+- a reinstall with disko (see below)
+- giving the existing partitions disko's labels. This doesn't touch any data. Check the partition numbers with `lsblk -o NAME,PARTLABEL,UUID,SIZE` first:
+
+  ```bash
+  sudo sgdisk -c 1:disk-main-ESP -c 2:disk-main-root -c 3:disk-main-swap /dev/nvme0n1
+  ```
+
+### Fresh install
+
+> **This erases the whole disk.** Check `device` in `hosts/g15/disko.nix` with `lsblk` first.
+
+From a NixOS live ISO, with this repo cloned:
+
+1. Delete the `./existing-install.nix` import from `hosts/g15/default.nix`. On a fresh
+   disk those UUIDs don't exist.
+2. Partition, encrypt, format and mount. It asks for the LUKS passphrase:
+
+   ```bash
+   sudo nix --experimental-features 'nix-command flakes' run github:nix-community/disko/latest -- --mode destroy,format,mount --flake .#g15
+   ```
+
+3. Install:
+
+   ```bash
+   sudo nixos-install --flake .#g15
+   ```
+
+## NVIDIA
+
+PRIME offload: the Intel iGPU drives the desktop and the RTX 3050 sleeps until you need it.
+Run a program on the dGPU with:
+
+```bash
+nvidia-offload <program>
+```
+
+The bus IDs (`PCI:0:2:0` and `PCI:1:0:0`) come from `lspci | grep -E "VGA|3D"`.
+
+## Boot screen (bootvine)
+
+`modules/nixos/bootvine.nix` turns on `services.bootvine`: a live tree of systemd jobs on the boot
+console (initrd, stage 2 and shutdown). It relies on the systemd-based initrd, which is the only one
+this nixpkgs still has.
+
+- **Source:** bootvine's own flake, the `bootvine` input in `flake.nix` (codeberg.org/wvhulle/bootvine,
+  pinned in `flake.lock`). Its NixOS module and its package come from there. nixos-unstable has the
+  package but not yet a module, which is why the flake is used.
+- **Compiled here:** the package is built from source on this machine (crane, with the Rust toolchain the
+  project pins), so the first rebuild takes a while. Its Cachix cache is not used: Nix only honours
+  `nixConfig` from the top-level flake, and `accept-flake-config = false` blocks it anyway. The only
+  binary cache in use is cache.nixos.org.
+- **Later:** once nixpkgs ships its own `services.bootvine`, delete the input and the import in
+  `bootvine.nix`; declaring the options twice would be an error.
+- **Update it** with `nix flake update bootvine`.
+- It sits in the boot path (it shows the LUKS passphrase prompt). Try it with `nh os test` first, which
+  does not change the boot menu, and keep the previous generation selectable.
+- Tuning goes in `services.bootvine.settings` (see the comment in the file).
 
 ## Battery
 
@@ -287,8 +381,10 @@ open question in `docs/questions.md`.
 ## Binary caches
 
 Only `cache.nixos.org` is used. `accept-flake-config = false` in `modules/nixos/nix.nix`
-stops flakes from adding their own substituters. To add a cache on purpose, set
-`extra-substituters` and `extra-trusted-public-keys` there.
+stops flakes from adding their own substituters, which is what keeps the bootvine flake's Cachix
+out. To add a cache on purpose, set `extra-substituters` and `extra-trusted-public-keys` there. To
+use none at all, set `substituters = [ ]`; everything, including the kernel, is then compiled
+locally.
 
 ## Testing
 

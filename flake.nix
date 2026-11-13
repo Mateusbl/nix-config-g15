@@ -26,6 +26,15 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Live systemd job tree on the boot console (modules/nixos/bootvine.nix). Built on this
+    # machine from source. The flake's own Cachix is never used: Nix only honours the `nixConfig`
+    # of the top-level flake, and `accept-flake-config = false` in modules/nixos/nix.nix blocks it
+    # anyway. Delete this input once nixpkgs ships services.bootvine.
+    bootvine = {
+      url = "git+https://codeberg.org/wvhulle/bootvine";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
