@@ -34,3 +34,14 @@ Decisions only you can make. Until you answer, the config uses the default given
    and daily, `modules/nixos/snapshots.nix`). They live on the same disk, so they don't help if
    the disk dies or the laptop is lost. btrbk can send them to an external btrfs drive or over
    SSH once you name a target. *Default: local snapshots only.*
+
+## Battery
+
+9. **Display refresh rate on battery.** The laptop panel always runs at 120 Hz. Dropping to 60 Hz when
+   unplugged saves power, but needs a runtime `hyprctl` call that I could not verify for Hyprland's
+   Lua config. *Default: 120 Hz always.* Do you want it tried, with you testing it on the laptop?
+10. **Bluetooth at boot.** `hardware.bluetooth.powerOnBoot = true` keeps the radio on after every boot.
+    Turning it off saves a little, but you would switch it on in blueman each time. *Default: unchanged (on).*
+11. **Aggressive PCIe/USB power saving** (kernel parameter `pcie_aspm.policy=powersupersave`, powertop
+    auto-tune). They save more, but can make an NVMe drive, the Wi-Fi card or USB input devices misbehave on some laptops, and
+    the first one is a boot setting. *Default: not applied.*

@@ -83,6 +83,7 @@
           "network"
           "cpu"
           "memory"
+          "power-profiles-daemon" # click to cycle power-saver / balanced / performance
           "battery"
           "tray" # icons of apps that live in the background (nm-applet, blueman, ...)
         ];
@@ -93,7 +94,18 @@
           on-click = "pavucontrol"; # mixer: per-app volume, outputs, inputs
         };
         tray.spacing = 8;
+        power-profiles-daemon = {
+          format = "PWR {profile}";
+          tooltip-format = "Power profile: {profile}\nCPU driver: {cpu_driver}";
+        };
         battery = {
+          # The state names match UPower's thresholds (modules/nixos/power-sleep.nix).
+          states = {
+            warning = 20;
+            critical = 10;
+          };
+          format-warning = "LOW {capacity}%";
+          format-critical = "CRIT {capacity}%";
           format = "BAT {capacity}%";
           format-charging = "CHG {capacity}%";
           format-full = "BAT {capacity}%";

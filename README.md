@@ -3,7 +3,7 @@
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
 - **Desktop:** Hyprland (Lua config) started through UWSM, with the `ly` display manager, Waybar, Rofi, Mako, hyprlock/hypridle and Ghostty
-- **Theme:** Stylix with a custom palette based on the NixOS logo colours (`assets/nix-bg.png`)
+- **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`). The wallpaper is `assets/nix-bg.png` tinted to that palette at build time
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
 - **Editor:** Neovim (nixvim) set up for Java/Spring, Python (Django, FastAPI) and TypeScript/React. Project toolchains come from each project's devenv. VS Code is still installed
@@ -23,13 +23,13 @@ hosts/
 modules/nixos/                 shared system modules, one topic per file
   base.nix                     networking, locale, system packages
   boot.nix                     systemd-boot, latest kernel, git revision in generations
-  bootvine.nix                 live systemd boot screen (off for now, see below)
+  bootvine.nix                 live systemd boot screen (+ a temporary copy of its module)
   storage.nix                  btrfs auto-scrub
   snapshots.nix                hourly/daily btrfs snapshots of /home (btrbk)
   secrets.nix                  oo7 as the only Secret Service (+ PAM unlock, portal)
   nix.nix                      nix settings, flake registry, GC, nh
   nvidia.nix                   PRIME offload (Intel iGPU + NVIDIA dGPU)
-  power-sleep.nix              lid/power key, suspend-then-hibernate, thermald
+  power-sleep.nix              lid/power key, suspend-then-hibernate, battery tuning
   audio-bluetooth.nix          PipeWire, Bluetooth, blueman
   desktop.nix                  ly, Hyprland/UWSM, portals, Thunar
   podman.nix                   rootless Podman with docker compat
@@ -69,6 +69,16 @@ Nix only sees files that git tracks, so `git add` new files before you build.
 The flake output is `g15`, but the hostname is still `nixos` so it matches the
 running system. To rename the machine, change `hostname` in `flake.nix`. The
 first switch after that needs `nh os switch -H g15`.
+
+## Battery
+
+Tuning lives in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itself, see `nvidia.nix`):
+
+- **Profile follows the charger:** `power-saver` on battery, `balanced` on AC, set when the charger is (un)plugged and at boot. Waybar's `PWR <profile>` label cycles it on click (it is reset at the next plug/unplug).
+- **UPower:** low at 20%, critical at 10%, hibernate at 5%. The Waybar battery label shows `LOW` and `CRIT` at the first two.
+- **Wi-Fi power saving** is on.
+- Already there: thermald, zram, idle dimming (5 min), lock (10 min), screen off (11 min), suspend-then-hibernate (30 min idle, and on lid close after 2 h of sleep).
+- Not done, see `docs/questions.md`: 60 Hz on battery, Bluetooth off at boot, aggressive PCIe/USB power saving.
 
 ## Disks (disko)
 
@@ -136,21 +146,18 @@ The bus IDs (`PCI:0:2:0` and `PCI:1:0:0`) come from `lspci | grep -E "VGA|3D"`.
 
 ## Boot screen (bootvine)
 
-`modules/nixos/bootvine.nix` turns on `services.bootvine`, a live view of the systemd job tree
-during boot and shutdown. The module was merged into nixpkgs master on 2026-11-12. When this
-was tested, `nixos-unstable` (2026-11-11) didn't have it yet, so evaluation failed with
-``The option `services.bootvine' does not exist``.
+`modules/nixos/bootvine.nix` turns on `services.bootvine`: a live tree of systemd jobs on the boot
+console (initrd, stage 2 and shutdown). It relies on the systemd-based initrd, which is the only one
+this nixpkgs still has.
 
-That's why the import is commented out in `modules/nixos/default.nix`. To turn it on:
-
-1. Update nixpkgs and check that the option exists:
-
-   ```bash
-   nix flake update nixpkgs
-   ```
-
-2. Uncomment `./bootvine.nix` in `modules/nixos/default.nix`.
-3. Test it with `nh os test` before you switch. bootvine handles the LUKS passphrase prompt, so keep the previous generation in the boot menu.
+- The **package** comes from nixpkgs (needs the nixpkgs pin from 2026-11-11 or later).
+- The **module** is not in `nixos-unstable` yet, so `modules/nixos/bootvine-module.nix` is an unchanged
+  copy of nixpkgs' module (commit `da9b3a6`). It is imported only while the locked nixpkgs has no
+  `services/system/bootvine.nix` of its own. After a `nix flake update nixpkgs` that brings the real
+  one, the copy is ignored by itself and can be deleted.
+- It sits in the boot path (it shows the LUKS passphrase prompt). Try it with `nh os test` first, which
+  does not change the boot menu, and keep the previous generation selectable.
+- Tuning goes in `services.bootvine.settings` (see the comment in the file).
 
 ## Editor
 

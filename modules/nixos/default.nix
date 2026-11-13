@@ -2,7 +2,7 @@
   imports = [
     ./base.nix
     ./boot.nix
-    # ./bootvine.nix # enable once nixos-unstable has services.bootvine, see the file
+    ./bootvine.nix
     ./storage.nix
     ./snapshots.nix
     ./nix.nix

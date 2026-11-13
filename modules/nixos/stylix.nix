@@ -1,31 +1,47 @@
+# System-wide theme (Stylix). Neovim, Ghostty, Waybar, Rofi, GTK, Hyprland borders, ... all take
+# their colours from the palette below, so changing it here re-themes everything.
 { pkgs, ... }:
 
+let
+  # A blue-leaning base16 palette on a deep navy background. Text and accent colours
+  # (base04 to base0F) reach at least 5:1 contrast on base00, so they stay readable on the
+  # 0.85-opaque terminal; comments (base03) are deliberately dimmer, at 3:1. The accents keep
+  # their usual roles (red errors, yellow warnings, green strings) but are softened and pulled
+  # toward blue so nothing clashes.
+  palette = {
+    base00 = "0a1224"; # Deep navy background
+    base01 = "111d38"; # Lighter background (status bars, popups)
+    base02 = "1c2c52"; # Selection background
+    base03 = "4a5f94"; # Comments / invisibles
+    base04 = "7d93c6"; # Dark foreground
+    base05 = "c9d8f7"; # Default foreground
+    base06 = "dce7fc"; # Light foreground
+    base07 = "eff4ff"; # Light background
+    base08 = "f2788f"; # Red (errors), rose
+    base09 = "eba377"; # Orange, peach
+    base0A = "e8cf8b"; # Yellow (warnings)
+    base0B = "7fd6b4"; # Green (strings), sea green
+    base0C = "7ec8f0"; # Cyan -> Nix light blue
+    base0D = "6f9cf5"; # Blue (primary accent)
+    base0E = "a496f5"; # Purple (keywords), blue-violet
+    base0F = "5fcbd8"; # Teal
+  };
+
+  # The original wallpaper is neutral grey on black (with an alpha channel, dropped first). Its greys
+  # are stretched to the full range, dimmed (the 150% level keeps the logo subtle behind the
+  # translucent terminal) and remapped from navy (base00) up to base03, so it follows the palette.
+  # Built once at build time; no extra binary in git.
+  wallpaper = pkgs.runCommand "nix-bg-blue.png" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
+    magick ${../../assets/nix-bg.png} -alpha off -colorspace Gray -auto-level -level 0%,150% \
+      +level-colors "#${palette.base00},#${palette.base03}" $out
+  '';
+in
 {
-  # Stylix system-wide theme
   stylix = {
     enable = true;
     polarity = "dark";
-    image = ../../assets/nix-bg.png;
-
-    # Custom NixOS-logo color palette
-    base16Scheme = {
-      base00 = "0f141e"; # Deep background
-      base01 = "182030"; # Lighter background (Statusbars)
-      base02 = "28344a"; # Selection background
-      base03 = "3b4252"; # Comments / Invisibles
-      base04 = "4c566a"; # Dark Foreground
-      base05 = "d8dee9"; # Default Foreground
-      base06 = "e5e9f0"; # Light Foreground
-      base07 = "eceff4"; # Light Background
-      base08 = "bf616a"; # Red (Errors)
-      base09 = "d08770"; # Orange
-      base0A = "ebcb8b"; # Yellow (Warnings)
-      base0B = "a3be8c"; # Green (Strings)
-      base0C = "7EBAE4"; # Cyan -> Nix Light Blue
-      base0D = "5277C3"; # Blue -> Nix Dark Blue (Primary Accent)
-      base0E = "b48ead"; # Purple (Keywords)
-      base0F = "8fbcbb"; # Brown/Teal
-    };
+    image = wallpaper;
+    base16Scheme = palette;
 
     # Make the terminal slightly transparent to see the wallpaper
     opacity = {

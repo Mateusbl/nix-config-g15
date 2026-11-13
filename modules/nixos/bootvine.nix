@@ -1,20 +1,21 @@
 # bootvine: live tree of systemd jobs on the boot console (initrd, stage 2 and shutdown).
 #
-# Uses the module that ships in nixpkgs (services.bootvine), NOT the author's flake, so
-# nothing is fetched from the author's Codeberg flake or his Cachix cache. The package is
-# built by nixpkgs and comes from cache.nixos.org once Hydra has built it.
+# The package comes from nixpkgs (cache.nixos.org); nothing is fetched from the author's own
+# flake or cache. The services.bootvine *module* is not in nixos-unstable yet, so a copy is
+# imported until it is (bootvine-module.nix). The check below turns the copy off by itself as
+# soon as the locked nixpkgs has the module.
 #
-# The module was merged into nixpkgs master on 2026-11-12. Until your nixpkgs input
-# contains it, evaluation fails with "option `services.bootvine' does not exist":
-#   nix flake update nixpkgs
-# If it still fails, the nixos-unstable channel has not caught up yet. Comment out the
-# `./bootvine.nix` line in modules/nixos/default.nix and retry in a few days.
-#
-# It sits in the boot path and answers the LUKS passphrase prompt, so test with
-# `nh os test` first and keep the previous generation in the boot menu.
+# It sits in the boot path and shows the LUKS passphrase prompt, so test with `nh os test`
+# first (it does not change the boot menu) and keep the previous generation selectable.
+{ lib, modulesPath, ... }:
+
 {
-  # bootvine needs a systemd-based initrd (default in recent NixOS, explicit on purpose).
-  boot.initrd.systemd.enable = true;
+  imports = lib.optional (
+    !builtins.pathExists (modulesPath + "/services/system/bootvine.nix")
+  ) ./bootvine-module.nix;
+
+  # bootvine needs a systemd-based initrd. In this nixpkgs that is the only kind left (the scripted
+  # initrd and the boot.initrd.systemd.enable option were removed), so nothing to set for it.
 
   services.bootvine.enable = true;
 
