@@ -1,0 +1,20 @@
+{
+  imports = [
+    ./base.nix
+    ./boot.nix
+    ./bootvine.nix
+    ./storage.nix
+    ./snapshots.nix
+    ./nix.nix
+    ./nvidia.nix
+    ./power-sleep.nix
+    ./oom.nix
+    ./performance.nix
+    ./audio-bluetooth.nix
+    ./desktop.nix
+    ./podman.nix
+    ./stylix.nix
+    ./users.nix
+    ./secrets.nix
+  ];
+}
