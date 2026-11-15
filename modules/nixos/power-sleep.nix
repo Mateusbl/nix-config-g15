@@ -1,4 +1,4 @@
-# Firmware, power, memory, suspend/hibernate behaviour, and battery tuning.
+# Firmware, power profile, memory, suspend/hibernate behaviour.
 # (The swap/resume device itself is declared in disko; the NVIDIA card sleeps via
 # modules/nixos/nvidia.nix.)
 { config, ... }:
@@ -22,24 +22,21 @@ in
   services.thermald.enable = true;
   zramSwap.enable = true;
 
-  # --- Battery -------------------------------------------------------------------------
-  # power-profiles-daemon (above) sets the CPU's energy/performance bias. By default it stays on
-  # "balanced" even when unplugged, so the profile follows the charger instead: power-saver on
-  # battery, balanced on AC. The udev rules fire when the charger is (un)plugged and also once
-  # at boot, so the profile always matches the current state. You can still change it by hand
-  # (Waybar's PWR label cycles it on click); it is reset at the next plug/unplug.
+  # --- Power profile ---------------------------------------------------------------------
+  # power-profiles-daemon (above) sets the CPU's energy/performance bias. The profile follows the
+  # charger: "performance" when plugged in, "balanced" on battery. Nothing is throttled to save
+  # power (no power-saver profile, no Wi-Fi power saving, the panel stays at 120 Hz). The udev
+  # rules fire when the charger is (un)plugged and also once at boot. You can still change the
+  # profile by hand (Waybar's PWR label cycles it on click); it is reset at the next plug/unplug.
   services.udev.extraRules = ''
     SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="0", TAG+="systemd", ENV{SYSTEMD_WANTS}="power-profile-battery.service"
     SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}="power-profile-ac.service"
   '';
-  systemd.services.power-profile-battery = setProfile "power-saver";
-  systemd.services.power-profile-ac = setProfile "balanced";
+  systemd.services.power-profile-battery = setProfile "balanced";
+  systemd.services.power-profile-ac = setProfile "performance";
 
-  # The Wi-Fi radio sleeps between packets. Costs a few ms of latency, saves a fraction of a watt.
-  networking.networkmanager.wifi.powersave = true;
-
-  # UPower watches the battery and acts before it runs flat: low at 20%, critical at 10%, and at
-  # 5% the laptop hibernates (the encrypted swap partition doubles as the hibernation target).
+  # A safety net, not a power saver: UPower watches the battery and acts before it runs flat:
+  # low at 20%, critical at 10%, and at 5% the laptop hibernates (the encrypted swap partition doubles as the hibernation target).
   # Waybar's battery label changes at the same thresholds.
   services.upower = {
     enable = true;

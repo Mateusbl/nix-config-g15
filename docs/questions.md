@@ -35,19 +35,11 @@ Decisions only you can make. Until you answer, the config uses the default given
    the disk dies or the laptop is lost. btrbk can send them to an external btrfs drive or over
    SSH once you name a target. *Default: local snapshots only.*
 
-## Battery
+## Power
 
-9. **Display refresh rate on battery.** There is now a switch for it:
-   `my.desktop.batteryRefreshRate.enable = true;` sets the laptop panel to 60 Hz on battery (a session
-   service calling `hyprctl eval`). Its script and Lua snippet are tested, but not on a running
-   Hyprland. *Default: off.* Turn it on, unplug the charger, and tell me whether the panel switches.
-10. **Bluetooth at boot.** `hardware.bluetooth.powerOnBoot = true` keeps the radio on after every boot.
-    Turning it off saves a little, but you would switch it on in blueman each time. *Default: unchanged (on).*
-11. **Aggressive PCIe/USB power saving** (kernel parameter `pcie_aspm.policy=powersupersave`, powertop
-    auto-tune). They save more, but can make an NVMe drive, the Wi-Fi card or USB input devices misbehave on some laptops, and
-    the first one is a boot setting. *Default: not applied.*
-
-12. **Disable cache.nixos.org too?** Only bootvine's extra Cachix is excluded (and it was never turned on).
+9. **Bluetooth at boot.** `hardware.bluetooth.powerOnBoot = true` keeps the radio on after every boot.
+   *Default: unchanged (on).*
+10. **Disable cache.nixos.org too?** Only bootvine's extra Cachix is excluded (and it was never turned on).
     I kept cache.nixos.org, because without it every rebuild compiles everything locally, kernel and browsers
     included, for hours. If you want that anyway, set `nix.settings.substituters = [ ]` in
     `modules/nixos/nix.nix`. *Default: cache.nixos.org stays.*

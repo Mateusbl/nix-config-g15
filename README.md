@@ -29,8 +29,9 @@ modules/nixos/                 shared system modules, one topic per file
   secrets.nix                  oo7 as the only Secret Service (+ PAM unlock, portal)
   nix.nix                      nix settings, flake registry, GC, nh
   nvidia.nix                   PRIME offload (Intel iGPU + NVIDIA dGPU)
-  power-sleep.nix              lid/power key, suspend-then-hibernate, battery tuning
+  power-sleep.nix              lid/power key, suspend-then-hibernate, power profile
   oom.nix                      earlyoom: kills a runaway process before the machine freezes
+  performance.nix              sched_ext scheduler, zram memory tuning, BBR networking
   audio-bluetooth.nix          PipeWire, Bluetooth, blueman
   desktop.nix                  ly, Hyprland/UWSM, portals, Thunar
   podman.nix                   rootless Podman with docker compat
@@ -71,16 +72,14 @@ The flake output is `g15`, but the hostname is still `nixos` so it matches the
 running system. To rename the machine, change `hostname` in `flake.nix`. The
 first switch after that needs `nh os switch -H g15`.
 
-## Battery
+## Power
 
-Tuning lives in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itself, see `nvidia.nix`):
+Settings live in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itself, see `nvidia.nix`).
+Nothing is throttled to save battery: the panel stays at 120 Hz and Wi-Fi power saving is off.
 
-- **Profile follows the charger:** `power-saver` on battery, `balanced` on AC, set when the charger is (un)plugged and at boot. Waybar's `PWR <profile>` label cycles it on click (it is reset at the next plug/unplug).
-- **UPower:** low at 20%, critical at 10%, hibernate at 5%. The Waybar battery label shows `LOW` and `CRIT` at the first two.
-- **Wi-Fi power saving** is on.
-- Already there: thermald, zram, idle dimming (5 min), lock (10 min), screen off (11 min), suspend-then-hibernate (30 min idle, and on lid close after 2 h of sleep).
-- Optional, off by default: `my.desktop.batteryRefreshRate.enable = true;` (in `home/default.nix`) runs a small session service that sets the laptop panel to 60 Hz on battery and back to its normal mode on AC. It is off because it has not been tried on the laptop yet.
-- Not done, see `docs/questions.md`: Bluetooth off at boot, aggressive PCIe/USB power saving.
+- **Profile follows the charger:** `performance` on AC, `balanced` on battery, set when the charger is (un)plugged and at boot. Waybar's `PWR <profile>` label cycles it on click (it is reset at the next plug/unplug).
+- **Low-battery safety net (UPower):** low at 20%, critical at 10%, hibernate at 5%. The Waybar battery label shows `LOW` and `CRIT` at the first two.
+- Idle behaviour: dim after 5 min, lock after 10, screen off after 11, suspend-then-hibernate after 30 (and on lid close after 2 h of sleep).
 
 ## Out of memory
 
@@ -389,6 +388,21 @@ sudo cp /.snapshots/home.<date>/<user>/path/to/file ~/path/to/file
 
 These snapshots are on the same disk, so they are **not** a backup. The off-disk target is an
 open question in `docs/questions.md`.
+
+## Speed
+
+The base is current: `nixos-unstable`, the newest kernel (`linuxPackages_latest`), dbus-broker, a
+systemd initrd and zstd-compressed zram. Update everything to the newest revisions with
+`nix flake update`. `modules/nixos/performance.nix` adds:
+
+- **sched_ext scheduler:** `scx_bpfland` through `services.scx-loader`. It favours interactive tasks,
+  so the desktop stays smooth while a build uses every core. The kernel falls back to its built-in
+  scheduler by itself if a sched_ext scheduler misbehaves. `scxctl get` shows what is running.
+- **Memory:** the sysctl values recommended for zram (swap idle pages to compressed RAM early).
+- **Network:** BBR congestion control with the `fq` queueing discipline.
+
+Deliberately not done: disabling CPU security mitigations, and putting `/tmp` in RAM (large local
+builds would run out of memory).
 
 ## Nix builds
 

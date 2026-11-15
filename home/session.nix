@@ -68,7 +68,7 @@
   # icon theme set in modules/nixos/stylix.nix.
   programs.rofi = {
     enable = true;
-    extraConfig.show-icons = true;
+    settings.show-icons = true;
   };
 
   # Waybar (text labels on purpose, no Nerd Font glyphs needed)

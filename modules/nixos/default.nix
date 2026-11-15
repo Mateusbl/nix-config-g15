@@ -9,6 +9,7 @@
     ./nvidia.nix
     ./power-sleep.nix
     ./oom.nix
+    ./performance.nix
     ./audio-bluetooth.nix
     ./desktop.nix
     ./podman.nix

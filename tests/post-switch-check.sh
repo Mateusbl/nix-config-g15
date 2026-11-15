@@ -52,7 +52,7 @@ else
 fi
 check "swap is active" "swapon --show" test -n "$(swapon --show --noheadings 2>/dev/null)"
 
-section "Battery"
+section "Power"
 on_ac=no
 for supply in /sys/class/power_supply/*; do
   if [ "$(cat "$supply/type" 2>/dev/null)" = "Mains" ] && [ "$(cat "$supply/online" 2>/dev/null)" = "1" ]; then
@@ -60,7 +60,7 @@ for supply in /sys/class/power_supply/*; do
   fi
 done
 profile=$(powerprofilesctl get 2>/dev/null || echo unknown)
-expected=$([ "$on_ac" = yes ] && echo balanced || echo power-saver)
+expected=$([ "$on_ac" = yes ] && echo performance || echo balanced)
 if [ "$profile" = "$expected" ]; then
   ok "power profile is '$profile' (charger connected: $on_ac)"
 else
