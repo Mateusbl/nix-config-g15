@@ -30,6 +30,7 @@ modules/nixos/                 shared system modules, one topic per file
   nix.nix                      nix settings, flake registry, GC, nh
   nvidia.nix                   PRIME offload (Intel iGPU + NVIDIA dGPU)
   power-sleep.nix              lid/power key, suspend-then-hibernate, battery tuning
+  oom.nix                      earlyoom: kills a runaway process before the machine freezes
   audio-bluetooth.nix          PipeWire, Bluetooth, blueman
   desktop.nix                  ly, Hyprland/UWSM, portals, Thunar
   podman.nix                   rootless Podman with docker compat
@@ -79,6 +80,13 @@ Tuning lives in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itsel
 - **Wi-Fi power saving** is on.
 - Already there: thermald, zram, idle dimming (5 min), lock (10 min), screen off (11 min), suspend-then-hibernate (30 min idle, and on lid close after 2 h of sleep).
 - Not done, see `docs/questions.md`: 60 Hz on battery, Bluetooth off at boot, aggressive PCIe/USB power saving.
+
+## Out of memory
+
+`modules/nixos/oom.nix` runs earlyoom. When less than 10% of RAM is available and less than 20% of swap
+is free, it ends the biggest process (SIGTERM, then SIGKILL at half those values) instead of letting the
+desktop freeze. It avoids the session (Hyprland, Waybar, PipeWire, oo7, ...), prefers Firefox tab
+processes, and sends a desktop notification naming what it killed.
 
 ## Disks (disko)
 
