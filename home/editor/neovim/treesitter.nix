@@ -1,5 +1,5 @@
 # Syntax trees: highlighting, indentation, text objects, auto-closing tags, comments.
-{ pkgs, ... }:
+{ ... }:
 
 {
   programs.nixvim = {

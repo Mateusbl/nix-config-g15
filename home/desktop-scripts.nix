@@ -69,12 +69,65 @@ let
       printf '%s' "$entry" | cliphist decode | wl-copy
     '';
   };
+
+  # Volume / brightness keys: change the value, then show it. The notification replaces itself
+  # (the "synchronous" hint) and carries the value, which mako draws as a progress bar in the
+  # Stylix colours. No extra OSD daemon needed.
+  osd = pkgs.writeShellApplication {
+    name = "osd";
+    runtimeInputs = with pkgs; [
+      wireplumber # wpctl
+      brightnessctl
+      libnotify
+      gawk
+      coreutils
+    ];
+    text = ''
+      show() { # show <title> <percent>
+        local bar=$2
+        if [ "$bar" -gt 100 ]; then bar=100; fi
+        notify-send -a osd -t 1200 \
+          -h string:x-canonical-private-synchronous:osd -h "int:value:$bar" "$1" "$2%"
+      }
+
+      # "Volume: 0.45" or "Volume: 0.45 [MUTED]" -> title + percent
+      show_audio() { # show_audio <wpctl target> <label>
+        local state percent
+        state=$(wpctl get-volume "$1")
+        percent=$(awk '{ printf "%d", $2 * 100 + 0.5 }' <<<"$state")
+        case "$state" in
+          *MUTED*) show "$2 muted" 0 ;;
+          *) show "$2" "$percent" ;;
+        esac
+      }
+
+      case "''${1:-}" in
+        volume-up) wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+ ;;
+        volume-down) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
+        volume-mute) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
+        mic-mute) wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
+        brightness-up) brightnessctl --quiet set 5%+ ;;
+        brightness-down) brightnessctl --quiet set 5%- ;;
+        *)
+          echo "usage: osd volume-up|volume-down|volume-mute|mic-mute|brightness-up|brightness-down" >&2
+          exit 1
+          ;;
+      esac
+
+      case "$1" in
+        volume-*) show_audio @DEFAULT_AUDIO_SINK@ "Volume" ;;
+        mic-mute) show_audio @DEFAULT_AUDIO_SOURCE@ "Microphone" ;;
+        brightness-*) show "Brightness" "$(brightnessctl --machine-readable | cut -d, -f4 | tr -d '%')" ;;
+      esac
+    '';
+  };
 in
 {
   home.packages = [
     power-menu
     screenshot
     clipboard-pick
+    osd
   ];
 
   # XDG user directories (Pictures, Downloads, ...), created on activation, plus a

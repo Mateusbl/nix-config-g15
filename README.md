@@ -346,8 +346,11 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 | `Shift+Print` / `Ctrl+Print` | region / full screen to `~/Pictures/Screenshots`, with a notification |
 | `SUPER+SHIFT+V` | clipboard history (cliphist, started with the session) |
 | `XF86AudioPlay/Next/Prev` | media control via playerctl, sent to the last used player (playerctld) |
+| Volume / brightness / mute keys | change the value and show it in a small notification with a bar (`osd`, drawn by mako in the theme colours) |
 
-- Waybar shows a tray. Clicking the volume opens pavucontrol.
+- Waybar shows a tray with nm-applet (Wi-Fi networks, VPNs; passwords go to oo7) and blueman-applet (Bluetooth). Clicking the volume opens pavucontrol.
+- Waybar's battery label turns yellow/red at the low/critical thresholds, and the power-profile label is tinted per profile, using the Stylix palette.
+- Small utility windows float centred instead of tiling: the mixer, Bluetooth manager, network editor and file dialogs (`window_rule` in `home/hyprland.nix`).
 - Optional, off by default, in `home/desktop-extras.nix`:
   - `my.desktop.nightLight.enable`: hyprsunset, warmer colours from 20:00.
   - `my.desktop.colorPicker.enable`: hyprpicker on `SUPER+SHIFT+C`.
@@ -365,7 +368,7 @@ search / delete). gnome-keyring is forced off. Verification steps, gaps and the 
 Git and [Jujutsu](https://jj-vcs.github.io) share one identity (`home/identity.nix`).
 - jj repos are colocated, so git, lazygit and gitsigns keep working.
 - Diffs go through delta. The TUI is `jjui`.
-- Remotes are reached over SSH through `services.ssh-agent`. No keys are created; run `ssh-add` once per session.
+- Remotes are reached over SSH through `services.ssh-agent`. No keys are created. The first use of a key in a session asks for its passphrase and adds it to the agent (`AddKeysToAgent yes`), so later pushes don't ask again.
 - There is no `gh`; pull requests are made in the browser.
 
 git → jj translations are in `docs/jj-cheatsheet.md`.

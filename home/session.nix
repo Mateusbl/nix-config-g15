@@ -1,5 +1,5 @@
 # Desktop session pieces: notifications, lock/idle, bar, launcher, terminal, browser.
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 {
   # Session services (UWSM-compatible, Stylix themes them)
@@ -71,6 +71,14 @@
   programs.waybar = {
     enable = true;
     systemd.enable = true;
+    # Extra colours for states, on top of Stylix's stylesheet. @base0X are the palette colours
+    # Stylix defines for Waybar, so these follow the theme (mkAfter: must come after them).
+    style = lib.mkAfter ''
+      #battery.warning:not(.charging) { color: @base0A; }
+      #battery.critical:not(.charging) { color: @base08; }
+      #power-profiles-daemon.power-saver { color: @base0B; }
+      #power-profiles-daemon.performance { color: @base09; }
+    '';
     settings = {
       mainBar = {
         layer = "top";
@@ -113,6 +121,13 @@
       };
     };
   };
+
+  # Tray applets (shown in Waybar's tray, themed by Stylix's GTK theme).
+  # nm-applet: pick a Wi-Fi network, enter its password (stored in oo7), manage VPNs.
+  # blueman-applet: pair and connect Bluetooth devices. Both are systemd user services tied to
+  # the graphical session, like the other session services here.
+  services.network-manager-applet.enable = true;
+  services.blueman-applet.enable = true;
 
   # Clipboard history: a wl-paste watcher (systemd user service, started with the graphical
   # session like mako/hyprpaper/waybar). SUPER+SHIFT+V picks from it (clipboard-pick).

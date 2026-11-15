@@ -1,6 +1,4 @@
 {
-  config,
-  pkgs,
   lib,
   ...
 }:
@@ -67,7 +65,40 @@
         };
       };
 
-      # hl.bind(key, dispatcher, opts)
+      # hl.window_rule({ name, match, <effects> })
+      # Small utility windows float in the middle of the screen instead of being tiled like an
+      # editor or a browser. `class` is a regular expression on the window's app id. NixOS wraps
+      # some programs, which changes the id (".blueman-manager-wrapped"), hence the loose patterns.
+      window_rule = [
+        {
+          name = "float-mixer";
+          match.class = "^(org\\.pulseaudio\\.pavucontrol|pavucontrol)$";
+          float = true;
+          center = true;
+          size = "900 600";
+        }
+        {
+          name = "float-bluetooth";
+          match.class = "^\\.?blueman-.*$";
+          float = true;
+          center = true;
+          size = "700 500";
+        }
+        {
+          name = "float-network-editor";
+          match.class = "^nm-connection-editor$";
+          float = true;
+          center = true;
+        }
+        {
+          name = "float-file-dialogs";
+          match.class = "^xdg-desktop-portal-gtk$";
+          float = true;
+          center = true;
+          size = "1000 700";
+        }
+      ];
+
       # hl.bind(key, dispatcher, opts)
       bind =
         let
@@ -146,23 +177,21 @@
           (bindCall "SUPER + SHIFT + 4" "hl.dsp.window.move({ workspace = 4 })")
           (bindCall "SUPER + SHIFT + 5" "hl.dsp.window.move({ workspace = 5 })")
 
-          # Volume & brightness keys (work when locked, repeat when held)
-          (bindOpts "XF86AudioRaiseVolume"
-            ''hl.dsp.exec_cmd("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+")''
-            {
-              locked = true;
-              repeating = true;
-            }
-          )
-          (bindOpts "XF86AudioLowerVolume" ''hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-")'' {
+          # Volume & brightness keys (work when locked, repeat when held). `osd` (desktop-scripts.nix)
+          # changes the value exactly as before and then shows it in a small notification.
+          (bindOpts "XF86AudioRaiseVolume" ''hl.dsp.exec_cmd("osd volume-up")'' {
             locked = true;
             repeating = true;
           })
-          (bindOpts "XF86MonBrightnessUp" ''hl.dsp.exec_cmd("brightnessctl set 5%+")'' {
+          (bindOpts "XF86AudioLowerVolume" ''hl.dsp.exec_cmd("osd volume-down")'' {
             locked = true;
             repeating = true;
           })
-          (bindOpts "XF86MonBrightnessDown" ''hl.dsp.exec_cmd("brightnessctl set 5%-")'' {
+          (bindOpts "XF86MonBrightnessUp" ''hl.dsp.exec_cmd("osd brightness-up")'' {
+            locked = true;
+            repeating = true;
+          })
+          (bindOpts "XF86MonBrightnessDown" ''hl.dsp.exec_cmd("osd brightness-down")'' {
             locked = true;
             repeating = true;
           })
@@ -174,10 +203,10 @@
           (bindOpts "XF86AudioPrev" ''hl.dsp.exec_cmd("playerctl previous")'' { locked = true; })
 
           # Mute keys
-          (bindOpts "XF86AudioMute" ''hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")'' {
+          (bindOpts "XF86AudioMute" ''hl.dsp.exec_cmd("osd volume-mute")'' {
             locked = true;
           })
-          (bindOpts "XF86AudioMicMute" ''hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle")'' {
+          (bindOpts "XF86AudioMicMute" ''hl.dsp.exec_cmd("osd mic-mute")'' {
             locked = true;
           })
 

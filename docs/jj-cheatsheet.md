@@ -65,5 +65,6 @@ jj squash
 jj git push --bookmark thing
 ```
 
-SSH: `services.ssh-agent` runs an agent for the session. Load your key once with `ssh-add`.
+SSH: `services.ssh-agent` runs an agent for the session. The first push or fetch asks for your key's
+passphrase and adds the key to the agent (`AddKeysToAgent yes`), so later ones don't ask.
 No keys are created by this config.

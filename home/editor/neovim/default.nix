@@ -3,7 +3,12 @@
 # Each file below owns one topic. Language files add their servers, formatters, test
 # adapters and debug adapters to the shared engines (lsp.nix, format.nix, test.nix,
 # debug.nix), so a language can be switched off in one place.
-{ lib, pkgs, ... }:
+{
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   # Switches for the parts you may want to turn off. They default to on because they
@@ -53,6 +58,11 @@
 
   config.programs.nixvim = {
     enable = true;
+
+    # Build Neovim's plugins from the same nixpkgs as the rest of the system (flake.nix makes
+    # nixvim "follow" it), not from the older one nixvim pins. Saying so explicitly is what
+    # nixvim asks for; without this line every rebuild prints a warning about it.
+    nixpkgs.source = inputs.nixpkgs;
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;

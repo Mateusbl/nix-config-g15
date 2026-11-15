@@ -25,8 +25,11 @@ in
             if not ok then
               return
             end
-            jdtls.setup_dap({ hotcodereplace = "auto" })
-            pcall(function() require("jdtls.dap").setup_dap_main_class_configs() end)
+            -- Debugger hooks; skipped quietly when nvim-dap is off (my.neovim.debug.enable = false).
+            if pcall(require, "dap") then
+              jdtls.setup_dap({ hotcodereplace = "auto" })
+              pcall(function() require("jdtls.dap").setup_dap_main_class_configs() end)
+            end
 
             local map = function(mode, lhs, rhs, desc)
               vim.keymap.set(mode, lhs, rhs, { buffer = args.buf, desc = desc })
@@ -82,7 +85,8 @@ in
     # Neovim's PATH (lsp.servers.jdtls.package defaults to it).
     lsp.servers.jdtls.package = null;
 
-    keymaps = [
+    # Only when the task runner is installed (my.neovim.tasks.enable).
+    keymaps = lib.mkIf cfg.tasks.enable [
       {
         mode = "n";
         key = "<leader>os";

@@ -53,7 +53,16 @@ in
   # squash, bookmarks, the operation log, revset input) and is more actively developed.
   home.packages = [ pkgs.jjui ];
 
-  # SSH agent for git/jj over SSH: keys you add with `ssh-add` stay unlocked for the session.
-  # No keys are created here.
+  # SSH agent for git/jj over SSH. No keys are created here.
   services.ssh-agent.enable = true;
+
+  # The first time a key is used in a session, ssh asks for its passphrase and hands the key to
+  # the agent ("AddKeysToAgent"), so later pushes and fetches don't ask again. No `ssh-add` needed.
+  # enableDefaultConfig = false: home-manager's old built-in defaults are being removed (it
+  # warns about them) and they equal OpenSSH's own defaults anyway.
+  programs.ssh = {
+    enable = true;
+    enableDefaultConfig = false;
+    settings."*".AddKeysToAgent = "yes";
+  };
 }

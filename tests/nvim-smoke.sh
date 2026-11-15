@@ -44,8 +44,15 @@ for _, mod in ipairs({ "devshell", "lang_java", "lang_python", "lang_web" }) do
   check("require " .. mod, pcall(require, mod))
 end
 -- Commands this config defines (or relies on) must exist.
-for _, cmd in ipairs({ "DevshellStatus", "DevshellReload", "OverseerRun", "Neotest", "FzfLua", "Trouble" }) do
+for _, cmd in ipairs({ "DevshellStatus", "DevshellReload", "FzfLua", "Trouble" }) do
   check(":" .. cmd, vim.fn.exists(":" .. cmd) == 2, "command missing")
+end
+-- Commands of features that can be switched off (my.neovim.tasks / my.neovim.test): only
+-- required when their plugin is installed.
+for cmd, plugin in pairs({ OverseerRun = "overseer", Neotest = "neotest" }) do
+  if pcall(require, plugin) then
+    check(":" .. cmd, vim.fn.exists(":" .. cmd) == 2, "command missing")
+  end
 end
 -- :DevshellStatus must render for this buffer (also exercises the tool registry).
 check("devshell status", pcall(require("devshell").status_lines, 0))
@@ -62,7 +69,7 @@ for _, line in ipairs(vim.split(messages, "\n")) do
 end
 
 local out = io.open(os.getenv("SMOKE_OUT"), "w")
-out:write(vim.bo.filetype .. "\n" .. table.concat(failures, "\n"))
+out:write(vim.bo.filetype .. "\n" .. table.concat(failures, "\n") .. "\n")
 out:close()
 vim.cmd(#failures == 0 and "qa!" or "cquit 1")
 EOF

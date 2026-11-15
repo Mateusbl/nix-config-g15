@@ -1,5 +1,5 @@
 # Moving around: file explorer, oil, fuzzy finder, flash, search/replace, sessions, terminal.
-{ pkgs, ... }:
+{ ... }:
 
 {
   programs.nixvim = {
