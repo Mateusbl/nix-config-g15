@@ -93,6 +93,13 @@
       # Enables `nix fmt` across the repository
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt;
 
+      # `nix flake check` evaluates the system below and also runs the Neovim smoke test.
+      checks.${system}.nvim-smoke = import ./tests/nvim-smoke.nix {
+        inherit (self.nixosConfigurations.g15) pkgs;
+        inherit (nixpkgs) lib;
+        hm = self.nixosConfigurations.g15.config.home-manager.users.${username};
+      };
+
       nixosConfigurations = {
         # Keep the hostname "nixos" for now so the running system still matches.
         # To rename the machine, change it here, then the first switch needs:

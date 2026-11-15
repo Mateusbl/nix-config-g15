@@ -43,6 +43,24 @@ in
     image = wallpaper;
     base16Scheme = palette;
 
+    # Icons for Thunar, Rofi, the tray and GTK dialogs. Without an icon theme they fall back to
+    # whatever generic icons happen to be installed. Papirus' folders are blue, which suits the
+    # palette.
+    icons = {
+      enable = true;
+      package = pkgs.papirus-icon-theme;
+      dark = "Papirus-Dark";
+      light = "Papirus-Light";
+    };
+
+    # One mouse cursor everywhere (Hyprland, GTK, XWayland apps): light, so it stays visible on
+    # the navy background.
+    cursor = {
+      package = pkgs.bibata-cursors;
+      name = "Bibata-Modern-Ice";
+      size = 24;
+    };
+
     # Make the terminal slightly transparent to see the wallpaper
     opacity = {
       terminal = 0.85;

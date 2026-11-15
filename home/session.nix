@@ -64,8 +64,12 @@
     };
   };
 
-  # Rofi (Wayland support is in the main package now; Stylix themes it)
-  programs.rofi.enable = true;
+  # Rofi (Wayland support is in the main package now; Stylix themes it). Icons come from the
+  # icon theme set in modules/nixos/stylix.nix.
+  programs.rofi = {
+    enable = true;
+    extraConfig.show-icons = true;
+  };
 
   # Waybar (text labels on purpose, no Nerd Font glyphs needed)
   programs.waybar = {

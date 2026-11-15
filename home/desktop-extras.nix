@@ -46,15 +46,97 @@ let
       notify-send "Recording saved" "$file"
     '';
   };
+
+  # The laptop panel as configured in home/hyprland.nix (output, position, scale, normal mode).
+  panel = lib.findFirst (
+    m: m.output == "eDP-1"
+  ) null config.wayland.windowManager.hyprland.settings.monitor;
+
+  # Lua snippet that sets the panel to a given mode; sent to the running Hyprland with
+  # `hyprctl eval`. Everything except the mode is taken from the normal monitor entry.
+  setPanel =
+    mode:
+    ''hl.monitor({ output = "${panel.output}", mode = "${mode}", position = "${panel.position}", scale = ${toString panel.scale} })'';
+
+  # Follows the charger: the normal mode on AC, cfg.batteryRefreshRate.mode on battery.
+  # udevadm prints one line per power-supply event; several arrive per plug/unplug, so the mode is
+  # only changed when the state really changed.
+  battery-refresh-rate = pkgs.writeShellApplication {
+    name = "battery-refresh-rate";
+    runtimeInputs = with pkgs; [
+      systemd # udevadm
+      coreutils
+      hyprland # hyprctl (same build as the system's programs.hyprland)
+    ];
+    text = ''
+      on_ac() {
+        local supply
+        for supply in /sys/class/power_supply/*; do
+          if [ "$(cat "$supply/type" 2>/dev/null)" = "Mains" ] && [ "$(cat "$supply/online" 2>/dev/null)" = "1" ]; then
+            return 0
+          fi
+        done
+        return 1
+      }
+
+      last=""
+      apply() {
+        local state
+        if on_ac; then state=ac; else state=battery; fi
+        if [ "$state" = "$last" ]; then return; fi
+        last=$state
+        if [ "$state" = ac ]; then
+          hyprctl eval '${setPanel panel.mode}'
+        else
+          hyprctl eval '${setPanel cfg.batteryRefreshRate.mode}'
+        fi
+      }
+
+      apply
+      udevadm monitor --udev --subsystem-match=power_supply | while read -r _; do
+        apply
+      done
+    '';
+  };
 in
 {
   options.my.desktop = {
+    batteryRefreshRate = {
+      enable = lib.mkEnableOption "a lower refresh rate for the laptop panel while on battery";
+      mode = lib.mkOption {
+        type = lib.types.str;
+        default = "1920x1080@60";
+        description = "Hyprland mode for the laptop panel (eDP-1) on battery; on AC the mode from home/hyprland.nix is used.";
+      };
+    };
     nightLight.enable = lib.mkEnableOption "hyprsunset: warmer screen colours in the evening";
     colorPicker.enable = lib.mkEnableOption "hyprpicker on SUPER+SHIFT+C (copies the colour)";
     screenRecorder.enable = lib.mkEnableOption "wf-recorder on SUPER+SHIFT+R (region, start/stop)";
   };
 
   config = lib.mkMerge [
+    (lib.mkIf cfg.batteryRefreshRate.enable {
+      assertions = [
+        {
+          assertion = panel != null;
+          message = "my.desktop.batteryRefreshRate needs an eDP-1 entry in wayland.windowManager.hyprland.settings.monitor.";
+        }
+      ];
+      # A session service like the others (started and stopped with the graphical session).
+      systemd.user.services.battery-refresh-rate = {
+        Unit = {
+          Description = "Lower the laptop panel's refresh rate on battery";
+          PartOf = [ "graphical-session.target" ];
+          After = [ "graphical-session.target" ];
+        };
+        Service = {
+          ExecStart = lib.getExe battery-refresh-rate;
+          Restart = "on-failure";
+        };
+        Install.WantedBy = [ "graphical-session.target" ];
+      };
+    })
+
     (lib.mkIf cfg.nightLight.enable {
       services.hyprsunset = {
         enable = true;

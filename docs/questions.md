@@ -37,9 +37,10 @@ Decisions only you can make. Until you answer, the config uses the default given
 
 ## Battery
 
-9. **Display refresh rate on battery.** The laptop panel always runs at 120 Hz. Dropping to 60 Hz when
-   unplugged saves power, but needs a runtime `hyprctl` call that I could not verify for Hyprland's
-   Lua config. *Default: 120 Hz always.* Do you want it tried, with you testing it on the laptop?
+9. **Display refresh rate on battery.** There is now a switch for it:
+   `my.desktop.batteryRefreshRate.enable = true;` sets the laptop panel to 60 Hz on battery (a session
+   service calling `hyprctl eval`). Its script and Lua snippet are tested, but not on a running
+   Hyprland. *Default: off.* Turn it on, unplug the charger, and tell me whether the panel switches.
 10. **Bluetooth at boot.** `hardware.bluetooth.powerOnBoot = true` keeps the radio on after every boot.
     Turning it off saves a little, but you would switch it on in blueman each time. *Default: unchanged (on).*
 11. **Aggressive PCIe/USB power saving** (kernel parameter `pcie_aspm.policy=powersupersave`, powertop

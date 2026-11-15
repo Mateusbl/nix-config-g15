@@ -3,7 +3,7 @@
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
 - **Desktop:** Hyprland (Lua config) started through UWSM, with the `ly` display manager, Waybar, Rofi, Mako, hyprlock/hypridle and Ghostty
-- **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`). The wallpaper is `assets/nix-bg.png` tinted to that palette at build time
+- **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the ly login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
 - **Editor:** Neovim (nixvim) set up for Java/Spring, Python (Django, FastAPI) and TypeScript/React. Project toolchains come from each project's devenv. VS Code is still installed
@@ -45,7 +45,7 @@ home/                          home-manager modules, one topic per file
   desktop-scripts.nix          power menu, screenshots, clipboard picker; XDG user dirs
   desktop-extras.nix           optional: night light, colour picker, screen recorder
 docs/                          Neovim docs, devshell contract, open questions (questions.md)
-tests/nvim-smoke.sh            headless Neovim smoke test
+tests/                         nvim-smoke.sh (+ .nix: the same test as a flake check), post-switch-check.sh
 assets/nix-bg.png              wallpaper used by Stylix
 ```
 
@@ -79,7 +79,8 @@ Tuning lives in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itsel
 - **UPower:** low at 20%, critical at 10%, hibernate at 5%. The Waybar battery label shows `LOW` and `CRIT` at the first two.
 - **Wi-Fi power saving** is on.
 - Already there: thermald, zram, idle dimming (5 min), lock (10 min), screen off (11 min), suspend-then-hibernate (30 min idle, and on lid close after 2 h of sleep).
-- Not done, see `docs/questions.md`: 60 Hz on battery, Bluetooth off at boot, aggressive PCIe/USB power saving.
+- Optional, off by default: `my.desktop.batteryRefreshRate.enable = true;` (in `home/default.nix`) runs a small session service that sets the laptop panel to 60 Hz on battery and back to its normal mode on AC. It is off because it has not been tried on the laptop yet.
+- Not done, see `docs/questions.md`: Bluetooth off at boot, aggressive PCIe/USB power saving.
 
 ## Out of memory
 
@@ -389,6 +390,11 @@ sudo cp /.snapshots/home.<date>/<user>/path/to/file ~/path/to/file
 These snapshots are on the same disk, so they are **not** a backup. The off-disk target is an
 open question in `docs/questions.md`.
 
+## Nix builds
+
+Builds run at idle CPU and disk priority (`nix.daemonCPUSchedPolicy` / `daemonIOSchedClass` in
+`modules/nixos/nix.nix`), so the desktop stays usable while something compiles.
+
 ## Binary caches
 
 Only `cache.nixos.org` is used. `accept-flake-config = false` in `modules/nixos/nix.nix`
@@ -417,19 +423,25 @@ The first checks the flake outputs and evaluates the whole NixOS configuration. 
 instantiates the system closure. The third builds the disko partitioning script without
 running it.
 
-After switching, check Neovim with:
+`nix flake check` also runs the Neovim smoke test (`tests/nvim-smoke.nix`): it starts the exact
+Neovim this flake builds on a file of every supported language and fails on any Lua error.
+
+After switching, check the running machine (run it inside the Hyprland session; it changes nothing):
+
+```bash
+tests/post-switch-check.sh
+```
+
+It reports OK/FAIL for the services, oo7, bootvine, hibernation, the battery profile, Hyprland
+config errors, the installed commands and the theme. The Neovim test can also be run by hand, and it
+prints the startup time:
 
 ```bash
 tests/nvim-smoke.sh
 ```
 
-It opens a file of every supported language headless, fails on any Lua error, and prints the
-startup time.
-
-Known evaluation warnings that don't break anything:
-
-- nixvim warns that its nixpkgs `follows` differs from its own pin. The `follows` is on purpose (one nixpkgs for the whole system).
-- Stylix sets `programs.rofi.font`, which is deprecated upstream.
+Known evaluation warning that doesn't break anything: Stylix sets `programs.rofi.font`, which is
+deprecated upstream.
 
 ## License
 

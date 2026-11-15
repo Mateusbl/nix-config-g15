@@ -24,6 +24,11 @@
       automatic = true;
       dates = [ "weekly" ];
     };
+
+    # Builds (bootvine is compiled here, and so is anything not on cache.nixos.org) only get CPU
+    # and disk time nothing else wants, so the desktop stays responsive during `nh os switch`.
+    daemonCPUSchedPolicy = "idle";
+    daemonIOSchedClass = "idle";
   };
 
   # nh (Nix Helper). Path is case-sensitive.
