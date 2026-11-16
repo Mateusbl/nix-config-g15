@@ -46,31 +46,260 @@ home/                          home-manager modules, one topic per file
   desktop-scripts.nix          power menu, screenshots, clipboard picker; XDG user dirs
   desktop-extras.nix           optional: night light, colour picker, screen recorder
 docs/                          Neovim docs, devshell contract, open questions (questions.md)
-tests/                         nvim-smoke.sh (+ .nix: the same test as a flake check), post-switch-check.sh
 assets/nix-bg.png              wallpaper used by Stylix
 ```
 
+## Installation
+
+Pick one of two paths:
+
+| | Path | Data on disk |
+| --- | --- | --- |
+| **A** | Switch the NixOS that is already on this laptop to this config | kept, nothing is reformatted |
+| **B** | Install from the NixOS installer USB with disko | **erased** |
+
+Before you start, for both paths:
+
+- Plug in the charger and have a working network connection. The first build downloads most
+  packages from cache.nixos.org and compiles bootvine locally, so allow some time.
+- Have a backup of anything you cannot lose. Path A does not reformat, but it does change the
+  boot path (bootvine shows the passphrase prompt).
+- The flake output is called `g15`. Every command below names it as `.#g15`.
+
+### A. On the current NixOS install (nothing is reformatted)
+
+1. Clone the repository where `nh` expects it (`programs.nh.flake` in `modules/nixos/nix.nix`):
+
+   ```bash
+   git clone https://github.com/mateusbl/nix-config-g15 ~/Code/nix-config
+   ```
+
+   ```bash
+   cd ~/Code/nix-config
+   ```
+
+2. **Check the disk IDs.** `hosts/g15/existing-install.nix` points at this laptop's partitions by
+   UUID. If they don't match, the new system cannot find its disks at boot. Compare them:
+
+   ```bash
+   lsblk -o NAME,FSTYPE,UUID,SIZE,MOUNTPOINTS
+   ```
+
+   The `crypto_LUKS` partition holding `/` must have the UUID in `rootUuid`, the other
+   `crypto_LUKS` partition (swap) the one in `swapUuid`, and the `vfat` partition mounted at `/boot`
+   the one in the `fileSystems."/boot"` line. Fix the file if any differs.
+
+3. Try it without touching the boot menu. `test` activates the new system until the next reboot,
+   so a plain reboot brings the old one back:
+
+   ```bash
+   sudo nixos-rebuild test --flake .#g15
+   ```
+
+   If Nix says flakes are not enabled yet, use this once instead:
+
+   ```bash
+   sudo NIX_CONFIG="experimental-features = nix-command flakes" nixos-rebuild test --flake .#g15
+   ```
+
+4. Log out and back in through ly, so the new session services start. Look around: Waybar, the
+   launcher (rofi), a terminal, sound, Wi-Fi. Two quick checks for things you cannot see:
+
+   ```bash
+   systemctl --failed
+   ```
+
+   ```bash
+   systemctl --user --failed
+   ```
+
+   Both should list 0 units.
+
+5. If everything works, make it permanent (this adds the boot entry):
+
+   ```bash
+   sudo nixos-rebuild switch --flake .#g15
+   ```
+
+   The boot screen and the passphrase prompt change with this step (bootvine).
+
+6. Reboot once and confirm the passphrase prompt, login and hibernation work.
+
+If something goes wrong:
+
+- **After step 3:** reboot. Nothing was written to the boot menu, so the old system starts.
+- **After step 5:** pick the previous generation in the systemd-boot menu, then make it the
+  default again with `sudo nixos-rebuild switch --rollback`.
+
+From here on, use the aliases in [Daily use](#daily-use).
+
+### B. Fresh install from the installer USB
+
+> **This erases the whole disk.** Copy off everything you want to keep first.
+
+Every step from a blank USB stick to the finished desktop:
+
+1. **Make the USB stick.** Download the *Graphical ISO image* (GNOME, 64-bit Intel/AMD) from
+   <https://nixos.org/download>. It has a Wi-Fi menu and a terminal, which the steps below use.
+   Find the stick's name with `lsblk`, then write the image to it (this erases the stick; replace
+   both placeholders):
+
+   ```bash
+   sudo dd if=PATH-TO-THE.iso of=/dev/sdX bs=4M status=progress oflag=sync
+   ```
+
+2. **Boot it.** Plug the stick in, power on and press `F12` at the Dell logo, then pick the stick
+   under *UEFI Boot*. The firmware settings that let the current NixOS boot (Secure Boot off) are
+   the ones this install needs too, so there is nothing to change there. Close the graphical
+   installer window if it opens: it is not used.
+
+3. **Network and terminal.** Connect to Wi-Fi from the menu in the top-right corner. Open the
+   *Console* app. Check the connection:
+
+   ```bash
+   ping -c 3 nixos.org
+   ```
+
+4. **Get the repository.** The first command opens a shell that has `git`; stay in it until the
+   end.
+
+   ```bash
+   nix-shell -p git
+   ```
+
+   ```bash
+   git clone https://github.com/mateusbl/nix-config-g15
+   ```
+
+   ```bash
+   cd nix-config-g15
+   ```
+
+   If the config has not been merged into the default branch yet, switch to its branch now with
+   `git switch BRANCH-NAME`.
+
+5. **Check the disk settings.** List the disks:
+
+   ```bash
+   lsblk -d -o NAME,SIZE,MODEL
+   ```
+
+   The internal SSD should be `nvme0n1`. If it has another name, change `device` in
+   `hosts/g15/disko.nix` (`nano hosts/g15/disko.nix`). In the same file, the swap `size` (20G)
+   must be at least the amount of RAM (`free -h`), or hibernation will not work.
+
+6. **Remove the old-install bridge.** `hosts/g15/existing-install.nix` holds the UUIDs of the
+   partitions that are about to be erased. Delete its line from the imports:
+
+   ```bash
+   sed -i '/existing-install.nix/d' hosts/g15/default.nix
+   ```
+
+   ```bash
+   git rm hosts/g15/existing-install.nix
+   ```
+
+7. **Partition, encrypt, format and mount.** This is the step that erases the disk. It asks you
+   to choose a passphrase for the swap partition and then for the root partition. Use the same
+   one for both, so the boot asks only once.
+
+   ```bash
+   sudo nix --experimental-features 'nix-command flakes' run github:nix-community/disko/latest -- --mode destroy,format,mount --flake .#g15
+   ```
+
+   Check the result: `/mnt`, `/mnt/boot`, `/mnt/home` and `/mnt/nix` must be listed.
+
+   ```bash
+   findmnt -R /mnt
+   ```
+
+8. **Install.** This downloads the system and compiles bootvine, so it takes a while. At the end
+   it asks for a root password.
+
+   ```bash
+   sudo nixos-install --flake .#g15
+   ```
+
+9. **Set your own password.** The config sets none on purpose, and without one you cannot log in:
+
+   ```bash
+   sudo nixos-enter --root /mnt -c 'passwd mateus'
+   ```
+
+10. **Take the repository with you**, including the edits from steps 5 and 6, to the place `nh`
+    expects it:
+
+    ```bash
+    sudo mkdir -p /mnt/home/mateus/Code
+    ```
+
+    ```bash
+    sudo cp -r . /mnt/home/mateus/Code/nix-config
+    ```
+
+    ```bash
+    sudo nixos-enter --root /mnt -c 'chown -R mateus:users /home/mateus'
+    ```
+
+11. **Reboot into the new system** and pull the stick out when the screen goes dark:
+
+    ```bash
+    reboot
+    ```
+
+    bootvine asks for the disk passphrase, then ly asks for user `mateus` and the password from
+    step 9. Hyprland starts after login. `SUPER + Return` opens a terminal.
+
+12. **Finish.** Connect to Wi-Fi from the tray icon in Waybar. Then confirm that rebuilding works
+    from the installed system and record the edits from steps 5 and 6:
+
+    ```bash
+    cd ~/Code/nix-config
+    ```
+
+    ```bash
+    nrt
+    ```
+
+    ```bash
+    git commit -am "g15: installed with disko"
+    ```
+
+If something goes wrong:
+
+- **disko or `nixos-install` stops with an error:** nothing is bootable yet, but both can simply be
+  run again from the same terminal after fixing the cause.
+- **The new system does not boot or you cannot log in:** boot the USB stick again, repeat steps 3
+  to 6, then mount the installed system without formatting (`--mode mount` instead of
+  `--mode destroy,format,mount` in the command of step 7). After that, `nixos-install` and
+  `nixos-enter` from steps 8 and 9 work again.
+
+### After either install
+
+- **SSH key:** the config creates none. Make one with `ssh-keygen -t ed25519` and add the public key
+  to your Git host. The first use in a session asks for its passphrase once.
+- **Projects:** run `direnv allow` once in each project that has an `.envrc`. `docs/devshell-contract.md`
+  lists what a project's devenv must provide for Neovim.
+- **Secrets:** oo7 creates its keyring at the first login. Verification steps are in `docs/oo7-notes.md`.
+- **Open decisions** are collected in `docs/questions.md`.
+
 ## Daily use
 
-The `nh` flake path is `~/Code/nix-config` (`modules/nixos/nix.nix`), so clone the repo there:
+Work in `~/Code/nix-config`. Nix only sees files that git tracks, so `git add` new files before you
+build.
 
-```bash
-git clone https://github.com/mateusbl/nix-config-g15 ~/Code/nix-config
-```
+| Alias | Command | What it does |
+| --- | --- | --- |
+| `nrt` | `nh os test -H g15` | build and activate until the next reboot; no boot entry |
+| `nrs` | `nh os switch -H g15` | build, activate and make it the default boot entry |
+| `clean` | `nh clean all --keep-since 4d --keep 3` | delete old generations |
+| | `nix fmt` | format every `.nix` file with nixfmt |
+| | `nix flake update` | update all inputs (`flake.lock`) |
+| | `nix flake check` | evaluate the whole system without building it |
 
-| Command          | Alias | What it does                                        |
-| ---------------- | ----- | --------------------------------------------------- |
-| `nh os test`     | `nrt` | build and activate, but don't add a boot entry      |
-| `nh os switch`   | `nrs` | build, activate and make it the default boot entry  |
-| `nh clean all …` | `clean` | delete old generations (keeps the last 4 days / 3 generations) |
-| `nix fmt`        |       | format every `.nix` file with nixfmt               |
-| `nix flake update` |     | update all inputs (`flake.lock`)                    |
-
-Nix only sees files that git tracks, so `git add` new files before you build.
-
-The flake output is `g15`, but the hostname is still `nixos` so it matches the
-running system. To rename the machine, change `hostname` in `flake.nix`. The
-first switch after that needs `nh os switch -H g15`.
+`-H g15` is needed because `nh` otherwise looks for a flake output named after the machine's hostname,
+which is still `nixos` (set in `flake.nix`). If you change `hostname` there to `g15`, plain
+`nh os switch` works too.
 
 ## Power
 
@@ -109,37 +338,19 @@ the machine has more than 16 GiB.
 The current machine was installed with the NixOS installer, not with disko. Its partitions
 don't have disko's GPT labels (`disk-main-ESP`, `disk-main-swap`, `disk-main-root`).
 `hosts/g15/existing-install.nix` points the LUKS devices and `/boot` back at their existing
-UUIDs, so `nh os switch` keeps working and nothing is reformatted. The only visible change is
+UUIDs, so rebuilding keeps working and nothing is reformatted. The only visible change is
 that the LUKS mappings are now named `/dev/mapper/cryptroot` and `/dev/mapper/cryptswap`.
 
 You can drop `existing-install.nix` (and its import in `hosts/g15/default.nix`) after either of these:
 
-- a reinstall with disko (see below)
+- a reinstall with disko (Installation, path B)
 - giving the existing partitions disko's labels. This doesn't touch any data. Check the partition numbers with `lsblk -o NAME,PARTLABEL,UUID,SIZE` first:
 
   ```bash
   sudo sgdisk -c 1:disk-main-ESP -c 2:disk-main-root -c 3:disk-main-swap /dev/nvme0n1
   ```
 
-### Fresh install
-
-> **This erases the whole disk.** Check `device` in `hosts/g15/disko.nix` with `lsblk` first.
-
-From a NixOS live ISO, with this repo cloned:
-
-1. Delete the `./existing-install.nix` import from `hosts/g15/default.nix`. On a fresh
-   disk those UUIDs don't exist.
-2. Partition, encrypt, format and mount. It asks for the LUKS passphrase:
-
-   ```bash
-   sudo nix --experimental-features 'nix-command flakes' run github:nix-community/disko/latest -- --mode destroy,format,mount --flake .#g15
-   ```
-
-3. Install:
-
-   ```bash
-   sudo nixos-install --flake .#g15
-   ```
+A fresh install with disko is described step by step under [Installation](#installation), path B.
 
 ## NVIDIA
 
@@ -168,96 +379,7 @@ this nixpkgs still has.
 - **Later:** once nixpkgs ships its own `services.bootvine`, delete the input and the import in
   `bootvine.nix`; declaring the options twice would be an error.
 - **Update it** with `nix flake update bootvine`.
-- It sits in the boot path (it shows the LUKS passphrase prompt). Try it with `nh os test` first, which
-  does not change the boot menu, and keep the previous generation selectable.
-- Tuning goes in `services.bootvine.settings` (see the comment in the file).
-
-## Battery
-
-Tuning lives in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itself, see `nvidia.nix`):
-
-- **Profile follows the charger:** `power-saver` on battery, `balanced` on AC, set when the charger is (un)plugged and at boot. Waybar's `PWR <profile>` label cycles it on click (it is reset at the next plug/unplug).
-- **UPower:** low at 20%, critical at 10%, hibernate at 5%. The Waybar battery label shows `LOW` and `CRIT` at the first two.
-- **Wi-Fi power saving** is on.
-- Already there: thermald, zram, idle dimming (5 min), lock (10 min), screen off (11 min), suspend-then-hibernate (30 min idle, and on lid close after 2 h of sleep).
-- Not done, see `docs/questions.md`: 60 Hz on battery, Bluetooth off at boot, aggressive PCIe/USB power saving.
-
-## Disks (disko)
-
-`hosts/g15/disko.nix` describes the same layout the old generated
-`hardware-configuration.nix` mounted:
-
-| Partition | Size        | Contents                                                                                 |
-| --------- | ----------- | ---------------------------------------------------------------------------------------- |
-| ESP       | 1 GiB       | vfat → `/boot` (`fmask=0077,dmask=0077`)                                                 |
-| swap      | 20 GiB      | LUKS (`cryptswap`) → swap, also `boot.resumeDevice` for hibernation                      |
-| root      | rest        | LUKS (`cryptroot`) → btrfs: top level `/`, subvolumes `home` → `/home`, `nix` → `/nix`  |
-
-Every btrfs mount uses `compress=zstd,noatime`. These options used to be in `storage.nix`.
-
-Swap has to be at least as large as RAM for hibernation. Change `size` in `disko.nix` if
-the machine has more than 16 GiB.
-
-### Already installed machine
-
-The current machine was installed with the NixOS installer, not with disko. Its partitions
-don't have disko's GPT labels (`disk-main-ESP`, `disk-main-swap`, `disk-main-root`).
-`hosts/g15/existing-install.nix` points the LUKS devices and `/boot` back at their existing
-UUIDs, so `nh os switch` keeps working and nothing is reformatted. The only visible change is
-that the LUKS mappings are now named `/dev/mapper/cryptroot` and `/dev/mapper/cryptswap`.
-
-You can drop `existing-install.nix` (and its import in `hosts/g15/default.nix`) after either of these:
-
-- a reinstall with disko (see below)
-- giving the existing partitions disko's labels. This doesn't touch any data. Check the partition numbers with `lsblk -o NAME,PARTLABEL,UUID,SIZE` first:
-
-  ```bash
-  sudo sgdisk -c 1:disk-main-ESP -c 2:disk-main-root -c 3:disk-main-swap /dev/nvme0n1
-  ```
-
-### Fresh install
-
-> **This erases the whole disk.** Check `device` in `hosts/g15/disko.nix` with `lsblk` first.
-
-From a NixOS live ISO, with this repo cloned:
-
-1. Delete the `./existing-install.nix` import from `hosts/g15/default.nix`. On a fresh
-   disk those UUIDs don't exist.
-2. Partition, encrypt, format and mount. It asks for the LUKS passphrase:
-
-   ```bash
-   sudo nix --experimental-features 'nix-command flakes' run github:nix-community/disko/latest -- --mode destroy,format,mount --flake .#g15
-   ```
-
-3. Install:
-
-   ```bash
-   sudo nixos-install --flake .#g15
-   ```
-
-## NVIDIA
-
-PRIME offload: the Intel iGPU drives the desktop and the RTX 3050 sleeps until you need it.
-Run a program on the dGPU with:
-
-```bash
-nvidia-offload <program>
-```
-
-The bus IDs (`PCI:0:2:0` and `PCI:1:0:0`) come from `lspci | grep -E "VGA|3D"`.
-
-## Boot screen (bootvine)
-
-`modules/nixos/bootvine.nix` turns on `services.bootvine`: a live tree of systemd jobs on the boot
-console (initrd, stage 2 and shutdown). It relies on the systemd-based initrd, which is the only one
-this nixpkgs still has.
-
-- The **package** comes from nixpkgs (needs the nixpkgs pin from 2026-11-11 or later).
-- The **module** is not in `nixos-unstable` yet, so `modules/nixos/bootvine-module.nix` is an unchanged
-  copy of nixpkgs' module (commit `da9b3a6`). It is imported only while the locked nixpkgs has no
-  `services/system/bootvine.nix` of its own. After a `nix flake update nixpkgs` that brings the real
-  one, the copy is ignored by itself and can be deleted.
-- It sits in the boot path (it shows the LUKS passphrase prompt). Try it with `nh os test` first, which
+- It sits in the boot path (it shows the LUKS passphrase prompt). Try it with `nrt` first, which
   does not change the boot menu, and keep the previous generation selectable.
 - Tuning goes in `services.bootvine.settings` (see the comment in the file).
 
@@ -437,22 +559,8 @@ The first checks the flake outputs and evaluates the whole NixOS configuration. 
 instantiates the system closure. The third builds the disko partitioning script without
 running it.
 
-`nix flake check` also runs the Neovim smoke test (`tests/nvim-smoke.nix`): it starts the exact
-Neovim this flake builds on a file of every supported language and fails on any Lua error.
-
-After switching, check the running machine (run it inside the Hyprland session; it changes nothing):
-
-```bash
-tests/post-switch-check.sh
-```
-
-It reports OK/FAIL for the services, oo7, bootvine, hibernation, the battery profile, Hyprland
-config errors, the installed commands and the theme. The Neovim test can also be run by hand, and it
-prints the startup time:
-
-```bash
-tests/nvim-smoke.sh
-```
+There are no automated tests of the running machine or of the Neovim config. After a switch,
+`systemctl --failed` and `systemctl --user --failed` show services that did not start.
 
 Known evaluation warning that doesn't break anything: Stylix sets `programs.rofi.font`, which is
 deprecated upstream.
