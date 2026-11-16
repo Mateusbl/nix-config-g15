@@ -25,7 +25,7 @@ modules/nixos/                 shared system modules, one topic per file
   boot.nix                     systemd-boot, latest kernel, git revision in generations
   bootvine.nix                 live systemd boot screen (from bootvine's own flake)
   storage.nix                  btrfs auto-scrub
-  snapshots.nix                hourly/daily btrfs snapshots of /home (btrbk)
+  snapshots.nix                daily btrfs snapshots of /home (btrbk)
   secrets.nix                  oo7 as the only Secret Service (+ PAM unlock, portal)
   nix.nix                      nix settings, flake registry, GC, nh
   nvidia.nix                   PRIME offload (Intel iGPU + NVIDIA dGPU)
@@ -45,7 +45,7 @@ home/                          home-manager modules, one topic per file
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
   desktop-scripts.nix          power menu, screenshots, clipboard picker; XDG user dirs
   desktop-extras.nix           optional: night light, colour picker, screen recorder
-docs/                          Neovim docs, devshell contract, open questions (questions.md)
+docs/                          Neovim docs, devshell contract, jj and oo7 notes
 assets/nix-bg.png              wallpaper used by Stylix
 ```
 
@@ -281,7 +281,6 @@ If something goes wrong:
 - **Projects:** run `direnv allow` once in each project that has an `.envrc`. `docs/devshell-contract.md`
   lists what a project's devenv must provide for Neovim.
 - **Secrets:** oo7 creates its keyring at the first login. Verification steps are in `docs/oo7-notes.md`.
-- **Open decisions** are collected in `docs/questions.md`.
 
 ## Daily use
 
@@ -492,7 +491,7 @@ git → jj translations are in `docs/jj-cheatsheet.md`.
 
 ## Snapshots of /home
 
-`modules/nixos/snapshots.nix` runs btrbk hourly and keeps 24 hourly plus 7 daily read-only
+`modules/nixos/snapshots.nix` runs btrbk once a day and keeps 14 daily read-only
 snapshots of the `home` subvolume in `/.snapshots` (root only). To get a file back:
 
 ```bash
@@ -503,8 +502,8 @@ sudo ls /.snapshots
 sudo cp /.snapshots/home.<date>/<user>/path/to/file ~/path/to/file
 ```
 
-These snapshots are on the same disk, so they are **not** a backup. The off-disk target is an
-open question in `docs/questions.md`.
+These snapshots are on the same disk, so they are **not** a backup. Off-disk backups are
+made by hand, outside this config.
 
 ## Speed
 
