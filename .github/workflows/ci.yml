@@ -22,25 +22,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # Plain git instead of actions/checkout: this workflow uses no actions at all, so it
-      # runs whatever the repository's "allowed actions" setting is.
-      - name: Check out
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git init -q .
-          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}"
-          git fetch -q --depth 1 origin "$GITHUB_REF"
-          git checkout -q FETCH_HEAD
+      - uses: actions/checkout@v4
 
-      # The official installer script, so the workflow needs no third-party action.
-      # The only substituter is cache.nixos.org.
-      - name: Install Nix
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSfL https://nixos.org/nix/install | sh -s -- --daemon --yes
-          echo "experimental-features = nix-command flakes" | sudo tee -a /etc/nix/nix.conf
-          sudo systemctl restart nix-daemon
-          echo "/nix/var/nix/profiles/default/bin" >> "$GITHUB_PATH"
+      # Installs plain upstream Nix. Despite the action's name, no Cachix cache is used:
+      # the only substituter is cache.nixos.org.
+      - uses: cachix/install-nix-action@v31
 
       - name: Formatting (nixfmt)
         run: git ls-files -z '*.nix' | xargs -0 nix fmt -- --check
