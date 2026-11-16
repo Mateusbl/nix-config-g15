@@ -5,18 +5,18 @@
 let
   screenshotsDir = config.xdg.userDirs.extraConfig.SCREENSHOTS;
 
-  # SUPER+SHIFT+Escape. rofi with -no-custom: only a listed entry can be chosen, and Escape
+  # SUPER+SHIFT+Escape. fuzzel with --only-match: only a listed entry can be chosen, and Escape
   # cancels, so a stray key press can never power the laptop off.
   power-menu = pkgs.writeShellApplication {
     name = "power-menu";
     runtimeInputs = with pkgs; [
-      rofi
+      fuzzel
       systemd
       uwsm
     ];
     text = ''
       choice=$(printf '%s\n' lock suspend reboot poweroff logout |
-        rofi -dmenu -i -no-custom -p "Power") || exit 0
+        fuzzel --dmenu --only-match --prompt "Power  ") || exit 0
       case "$choice" in
         lock) loginctl lock-session ;;
         suspend) systemctl suspend ;;
@@ -61,11 +61,11 @@ let
     name = "clipboard-pick";
     runtimeInputs = with pkgs; [
       cliphist
-      rofi
+      fuzzel
       wl-clipboard
     ];
     text = ''
-      entry=$(cliphist list | rofi -dmenu -i -no-custom -p "Clipboard") || exit 0
+      entry=$(cliphist list | fuzzel --dmenu --only-match --width 80 --prompt "Clipboard  ") || exit 0
       printf '%s' "$entry" | cliphist decode | wl-copy
     '';
   };

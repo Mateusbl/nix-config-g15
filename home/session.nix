@@ -64,69 +64,71 @@
     };
   };
 
-  # Rofi (Wayland support is in the main package now; Stylix themes it). Icons come from the
-  # icon theme set in modules/nixos/stylix.nix.
-  programs.rofi = {
+  # Launcher: fuzzel. Wayland-native, starts instantly, and remembers what you launch most.
+  # Stylix sets its colours and font; icons come from the icon theme in modules/nixos/stylix.nix.
+  # It is also the menu behind power-menu and clipboard-pick (home/desktop-scripts.nix).
+  programs.fuzzel = {
     enable = true;
-    settings.show-icons = true;
+    settings.main = {
+      terminal = "ghostty -e"; # for entries that need a terminal (btop, yazi, ...)
+      layer = "overlay"; # also shown above fullscreen windows
+      lines = 12;
+      width = 40;
+    };
+    settings.border.radius = 8;
   };
 
-  # Waybar (text labels on purpose, no Nerd Font glyphs needed)
-  programs.waybar = {
+  # Bar: ashell. One program made for Hyprland: workspaces, window title, clock, tray, and a
+  # settings panel (click the icons on the right) for volume, Wi-Fi, Bluetooth, brightness,
+  # power profile and power actions. Stylix sets its colours (stylix.targets.ashell).
+  programs.ashell = {
     enable = true;
-    systemd.enable = true;
-    # Extra colours for states, on top of Stylix's stylesheet. @base0X are the palette colours
-    # Stylix defines for Waybar, so these follow the theme (mkAfter: must come after them).
-    style = lib.mkAfter ''
-      #battery.warning:not(.charging) { color: @base0A; }
-      #battery.critical:not(.charging) { color: @base08; }
-      #power-profiles-daemon.power-saver { color: @base0B; }
-      #power-profiles-daemon.performance { color: @base09; }
-    '';
+    systemd.enable = true; # a session service, like mako and hyprpaper
     settings = {
-      mainBar = {
-        layer = "top";
-        position = "top";
-        height = 30;
-        modules-left = [ "hyprland/workspaces" ];
-        modules-center = [ "clock" ];
-        modules-right = [
-          "pulseaudio"
-          "network"
-          "cpu"
-          "memory"
-          "power-profiles-daemon" # click to cycle power-saver / balanced / performance
-          "battery"
-          "tray" # icons of apps that live in the background (nm-applet, blueman, ...)
+      position = "Top";
+      modules = {
+        left = [ "Workspaces" ];
+        center = [ "WindowTitle" ];
+        # Inner lists are drawn as one group.
+        right = [
+          "SystemInfo"
+          "Tray" # icons of apps that live in the background (nm-applet, blueman, ...)
+          [
+            "Tempo"
+            "Privacy" # shows when the microphone, camera or screen sharing is in use
+            "Settings"
+          ]
         ];
-        clock.format = "{:%Y-%m-%d %H:%M}";
-        pulseaudio = {
-          format = "VOL {volume}%";
-          format-muted = "MUTED";
-          on-click = "pavucontrol"; # mixer: per-app volume, outputs, inputs
-        };
-        tray.spacing = 8;
-        power-profiles-daemon = {
-          format = "PWR {profile}";
-          tooltip-format = "Power profile: {profile}\nCPU driver: {cpu_driver}";
-        };
-        battery = {
-          # The state names match UPower's thresholds (modules/nixos/power-sleep.nix).
-          states = {
-            warning = 20;
-            critical = 10;
-          };
-          format-warning = "LOW {capacity}%";
-          format-critical = "CRIT {capacity}%";
-          format = "BAT {capacity}%";
-          format-charging = "CHG {capacity}%";
-          format-full = "BAT {capacity}%";
-        };
+      };
+
+      # Tempo is the clock; clicking it opens a calendar. No weather: that would ask a web
+      # service for the location.
+      tempo.clock_format = "%Y-%m-%d %H:%M";
+
+      system_info.indicators = [
+        "Cpu"
+        "Memory"
+        "Temperature"
+      ];
+
+      settings = {
+        battery_format = "IconAndPercentage";
+        # Same commands as power-menu, so both behave alike under UWSM.
+        lock_cmd = "loginctl lock-session";
+        suspend_cmd = "systemctl suspend";
+        hibernate_cmd = "systemctl hibernate";
+        reboot_cmd = "systemctl reboot";
+        shutdown_cmd = "systemctl poweroff";
+        logout_cmd = "uwsm stop";
+        # Right-click the speaker / Bluetooth button for the full tools.
+        audio_sinks_more_cmd = "pavucontrol -t 3";
+        audio_sources_more_cmd = "pavucontrol -t 4";
+        bluetooth_more_cmd = "blueman-manager";
       };
     };
   };
 
-  # Tray applets (shown in Waybar's tray, themed by Stylix's GTK theme).
+  # Tray applets (shown in the bar's tray, themed by Stylix's GTK theme).
   # nm-applet: pick a Wi-Fi network, enter its password (stored in oo7), manage VPNs.
   # blueman-applet: pair and connect Bluetooth devices. Both are systemd user services tied to
   # the graphical session, like the other session services here.
@@ -134,7 +136,7 @@
   services.blueman-applet.enable = true;
 
   # Clipboard history: a wl-paste watcher (systemd user service, started with the graphical
-  # session like mako/hyprpaper/waybar). SUPER+SHIFT+V picks from it (clipboard-pick).
+  # session like mako/hyprpaper/ashell). SUPER+SHIFT+V picks from it (clipboard-pick).
   services.cliphist.enable = true;
 
   # Media keys: playerctl talks to any MPRIS player (mpv, Firefox, Spotify, ...).
@@ -148,8 +150,8 @@
     mousepad
     brightnessctl
     playerctl
-    # Volume mixer. pavucontrol rather than wiremix: it is mature, is opened by clicking the
-    # Waybar volume module, and is a GTK app that Stylix themes. wiremix (a TUI) works too,
+    # Volume mixer. pavucontrol rather than wiremix: it is mature, is opened by right-clicking the
+    # speaker in the bar's settings panel, and is a GTK app that Stylix themes. wiremix (a TUI) works too,
     # but mixing per-app volumes is quicker with a mouse.
     pavucontrol
     wl-clipboard

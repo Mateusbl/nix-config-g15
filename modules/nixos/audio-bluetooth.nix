@@ -8,7 +8,7 @@
     pulse.enable = true;
   };
 
-  # Bluetooth (blueman-manager is launchable from rofi)
+  # Bluetooth (blueman-manager is launchable from the launcher)
   hardware.bluetooth = {
     enable = true;
     powerOnBoot = true;
