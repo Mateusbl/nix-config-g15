@@ -45,9 +45,7 @@ home/                          home-manager modules, one topic per file
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
   desktop-scripts.nix          power menu, screenshots, clipboard picker; XDG user dirs
   desktop-extras.nix           optional: night light, colour picker, screen recorder
-  self-tests.nix               installs the two commands from tests/
 docs/                          Neovim docs, devshell contract, open questions (questions.md)
-tests/                         nvim-smoke and post-switch-check commands, written in Nix; the flake check
 assets/nix-bg.png              wallpaper used by Stylix
 ```
 
@@ -104,14 +102,20 @@ Before you start, for both paths:
    sudo NIX_CONFIG="experimental-features = nix-command flakes" nixos-rebuild test --flake .#g15
    ```
 
-4. Log out and back in through ly, so the new session services start. Then, in a terminal inside
-   Hyprland, run the check this config installs. It only reads state and prints OK or FAIL per item:
+4. Log out and back in through ly, so the new session services start. Look around: Waybar, the
+   launcher (rofi), a terminal, sound, Wi-Fi. Two quick checks for things you cannot see:
 
    ```bash
-   post-switch-check
+   systemctl --failed
    ```
 
-5. If the report is clean, make it permanent (this adds the boot entry):
+   ```bash
+   systemctl --user --failed
+   ```
+
+   Both should list 0 units.
+
+5. If everything works, make it permanent (this adds the boot entry):
 
    ```bash
    sudo nixos-rebuild switch --flake .#g15
@@ -182,8 +186,6 @@ From here on, use the aliases in [Daily use](#daily-use).
 - **Projects:** run `direnv allow` once in each project that has an `.envrc`. `docs/devshell-contract.md`
   lists what a project's devenv must provide for Neovim.
 - **Secrets:** oo7 creates its keyring at the first login. Verification steps are in `docs/oo7-notes.md`.
-- **Neovim:** `nvim-smoke` opens a file of every supported language and reports Lua errors and
-  the startup time.
 - **Open decisions** are collected in `docs/questions.md`.
 
 ## Daily use
@@ -198,7 +200,7 @@ build.
 | `clean` | `nh clean all --keep-since 4d --keep 3` | delete old generations |
 | | `nix fmt` | format every `.nix` file with nixfmt |
 | | `nix flake update` | update all inputs (`flake.lock`) |
-| | `nix flake check` | evaluate the system and run the Neovim smoke test |
+| | `nix flake check` | evaluate the whole system without building it |
 
 `-H g15` is needed because `nh` otherwise looks for a flake output named after the machine's hostname,
 which is still `nixos` (set in `flake.nix`). If you change `hostname` there to `g15`, plain
@@ -462,22 +464,8 @@ The first checks the flake outputs and evaluates the whole NixOS configuration. 
 instantiates the system closure. The third builds the disko partitioning script without
 running it.
 
-`nix flake check` also runs the Neovim smoke test (`tests/nvim-smoke.nix`): it starts the exact
-Neovim this flake builds on a file of every supported language and fails on any Lua error.
-
-After switching, check the running machine (run it inside the Hyprland session; it changes nothing):
-
-```bash
-post-switch-check
-```
-
-It reports OK/FAIL for the services, oo7, bootvine, hibernation, the battery profile, Hyprland
-config errors, the installed commands and the theme. The Neovim test can also be run by hand, and it
-prints the startup time:
-
-```bash
-nvim-smoke
-```
+There are no automated tests of the running machine or of the Neovim config. After a switch,
+`systemctl --failed` and `systemctl --user --failed` show services that did not start.
 
 Known evaluation warning that doesn't break anything: Stylix sets `programs.rofi.font`, which is
 deprecated upstream.

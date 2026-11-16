@@ -156,7 +156,7 @@ Rejected:
 - **Lazy-loading through lz.n:** it would bring the time down further, at the cost of a
   `lazyLoad` block per plugin.
 
-The laptop's number is not measured yet. `nvim-smoke` prints it.
+The laptop's number is not measured yet. `nvim --startuptime /tmp/nvim.log +qa` writes it to the last line of that file.
 
 ## Treesitter
 

@@ -12,7 +12,7 @@ Decisions only you can make. Until you answer, the config uses the default given
 2. **Angular.** Do you use Angular anywhere? If yes, angularls can come back as a project
    server (one line in `home/editor/neovim/languages/web.nix` plus `@angular/language-server`
    in that devenv). *Default: no angularls.*
-3. **Neovim startup on the laptop.** Run `nvim-smoke` and look at the last line. If it
+3. **Neovim startup on the laptop.** Run `nvim --startuptime /tmp/nvim.log +qa` and read the last line of `/tmp/nvim.log`. If it
    is above 80 ms, do you want lazy-loading (more config per plugin)? *Default: no lazy-loading.*
 4. **Django test runner.** pytest-django or `manage.py test`?
    *Default: pytest (`my.neovim.languages.python.testRunner = "pytest"`).*
@@ -46,8 +46,7 @@ Decisions only you can make. Until you answer, the config uses the default given
 
 ## Repository
 
-11. **"Remove all .sh and non nix files": how far?** The two shell scripts are gone: they are now
-    Nix-defined commands (`tests/nvim-smoke-script.nix`, `tests/post-switch-check.nix`). The
+11. **"Remove all .sh and non nix files": how far?** The two shell scripts and the rest of `tests/` are gone. The
     remaining non-Nix files were kept because removing them loses something: `flake.lock` (pins
     every input), `home/editor/neovim/lua/*.lua` (loaded by Neovim; inlining them into Nix strings
     loses Lua highlighting and stylua), `assets/nix-bg.png` (wallpaper), `README.md`, `docs/*.md`,
