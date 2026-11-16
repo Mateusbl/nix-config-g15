@@ -85,12 +85,6 @@
           size = "700 500";
         }
         {
-          name = "float-network-editor";
-          match.class = "^nm-connection-editor$";
-          float = true;
-          center = true;
-        }
-        {
           name = "float-file-dialogs";
           match.class = "^xdg-desktop-portal-gtk$";
           float = true;
@@ -121,7 +115,7 @@
           (bindCall "SUPER + Return" ''hl.dsp.exec_cmd("ghostty")'')
           (bindCall "SUPER + Q" "hl.dsp.window.close()")
           (bindCall "SUPER + M" ''hl.dsp.exec_cmd("uwsm stop")'')
-          (bindCall "SUPER + E" ''hl.dsp.exec_cmd("thunar")'')
+          (bindCall "SUPER + E" ''hl.dsp.exec_cmd("ghostty -e yazi")'')
           (bindCall "SUPER + SHIFT + E" ''hl.dsp.exec_cmd("ghostty -e yazi")'') # terminal file manager
           (bindCall "SUPER + D" ''hl.dsp.exec_cmd("fuzzel")'')
           (bindCall "SUPER + V" ''hl.dsp.window.float({ action = "toggle" })'')

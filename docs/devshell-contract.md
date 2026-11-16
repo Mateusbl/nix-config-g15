@@ -8,7 +8,7 @@ This page lists what each kind of project must provide so that Neovim can use it
 
 ## How Neovim finds the tools
 
-`home/editor/neovim/lua/devshell.lua` does this for every project tool:
+`home/editor/neovim/lua/devshell.nix` does this for every project tool:
 
 1. Find the nearest `.envrc` above the file.
 2. If it is allowed, load its environment once (`direnv export json`) and cache it per
@@ -177,6 +177,7 @@ Same as Django, without the template tooling:
 | ESLint server        | `vscode-eslint-language-server`              | `vscode-langservers-extracted`; eslint itself from `node_modules` |
 | Formatter            | `prettier` (or `biome`)                      | the project's `node_modules/.bin` first, then `prettier`/`biome` from devenv |
 | Tailwind server      | `tailwindcss-language-server`                | `tailwindcss-language-server`                              |
+| Angular server (Angular projects only) | `ngserver`                 | `angular-language-server`; it reads TypeScript and Angular from the project's `node_modules` |
 | Debugging            | `js-debug` / `JS_DEBUG_PATH`                 | `vscode-js-debug`                                          |
 | Tests                | `vitest` / `jest`                            | the project's `node_modules`                               |
 

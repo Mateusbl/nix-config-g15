@@ -6,7 +6,7 @@ My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobi
 - **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the ly login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
-- **Editor:** Neovim (nixvim) set up for Java/Spring, Python (Django, FastAPI) and TypeScript/React. Project toolchains come from each project's devenv. VS Code is still installed
+- **Editor:** Neovim (nixvim) set up for Java/Spring, Python (Django, FastAPI) and TypeScript/React/Angular. Project toolchains come from each project's devenv. VS Code is still installed
 
 Rules for working on this repository (also for AI assistants) are in `CLAUDE.md`.
 
@@ -33,12 +33,12 @@ modules/nixos/                 shared system modules, one topic per file
   oom.nix                      earlyoom: kills a runaway process before the machine freezes
   performance.nix              sched_ext scheduler, zram memory tuning, BBR networking
   audio-bluetooth.nix          PipeWire, Bluetooth, blueman
-  desktop.nix                  ly, Hyprland/UWSM, portals, Thunar
+  desktop.nix                  ly, Hyprland/UWSM, portals, udisks
   podman.nix                   rootless Podman with docker compat
   stylix.nix                   theme, fonts, opacity
   users.nix                    user account, zsh
 home/                          home-manager modules, one topic per file
-  shell.nix  git.nix  cli.nix  session.nix  hyprland.nix  vscode.nix
+  shell.nix  git.nix  cli.nix  session.nix  hyprland.nix
   editor/neovim/               nixvim, one file per topic (see the Editor section)
   yazi.nix                     Yazi file manager
   identity.nix                 name + email, shared by git.nix and jujutsu.nix
@@ -399,7 +399,7 @@ this nixpkgs still has.
 | `lsp.nix`, `format.nix` | LSP keymaps and inlay hints; conform.nvim (format on save, `<leader>uf` toggles) |
 | `git.nix` | gitsigns, lazygit, diffview |
 | `debug.nix`, `test.nix`, `tasks.nix` | nvim-dap + UI (reads `.vscode/launch.json`), neotest, overseer (reads `.vscode/tasks.json`) |
-| `devshell.nix` + `lua/devshell.lua` | starts every project tool inside that project's direnv environment |
+| `devshell.nix` + `lua/devshell.nix` | starts every project tool inside that project's direnv environment |
 | `languages/java.nix` | jdtls (workspace per project), Java debugging/tests, Spring Boot run task |
 | `languages/python.nix` | pyright, ruff, debugpy, pytest or Django runner, Django templates |
 | `languages/web.nix` | vtsls, ESLint, Tailwind, biome/prettier, js-debug, jest/vitest |
@@ -435,25 +435,19 @@ my.neovim.languages.python.testRunner = "django"; # default "pytest"
 my.neovim.optional.http.enable = true;            # also: database
 ```
 
-### VS Code
-
-`home/vscode.nix`: plain `pkgs.vscode` with read-only extensions from nixpkgs only (nix-ide,
-direnv, vim). Stylix themes it. Whether it stays is an open question in `docs/questions.md`.
-
 ## Files: Yazi
 
 `home/yazi.nix` sets up [Yazi](https://yazi-rs.github.io) with its **default keymap**, so
 tutorials match.
 - **Start it:** `y` in zsh (cds to Yazi's last folder when you quit with `q`), or
-  `SUPER+SHIFT+E` (opens it in Ghostty). `SUPER+E` stays Thunar.
+  `SUPER+E` or `SUPER+SHIFT+E` (opens it in Ghostty). It is the only file manager.
 - **Openers:** text and code → `$EDITOR` (Neovim), images → imv, audio/video → mpv, PDF →
   zathura, archives → Yazi's extract (7zip), anything else → `xdg-open`. These are also the
-  desktop defaults. Directories still open in Thunar, and `text/plain` in Mousepad.
+  desktop defaults. Directories open in Yazi (in a Ghostty window), and `text/plain` in Mousepad.
 - **Previews:** images (kitty graphics protocol, native in Ghostty), video, PDF, archives,
   SVG, JSON, Markdown and code. The tools come with nixpkgs' Yazi wrapper.
-- **Plugins** (from nixpkgs `yaziPlugins`): git status signs, smart-enter (`<C-l>`), mount
-  (`M`), chmod (`c m`). There is also "reveal in Thunar" (`g r`). All of these keys are unused
-  in Yazi's defaults.
+- **Plugins** (from nixpkgs `yaziPlugins`): git status signs, mount (`M`, also for USB
+  drives), chmod (`c m`). These keys are unused in Yazi's defaults.
 - **Help:** Yazi's live help is `~` or `<F1>`. To debug the setup, run `ya env`.
 
 Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y` in Neovim.
@@ -471,9 +465,9 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 | Volume / brightness / mute keys | change the value and show it in a small notification with a bar (`osd`, drawn by mako in the theme colours) |
 
 - The bar is ashell (`home/session.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pavucontrol; right-clicking Bluetooth opens blueman-manager.
-- The tray holds nm-applet (Wi-Fi networks, VPNs; passwords go to oo7) and blueman-applet (Bluetooth).
+- Wi-Fi and Bluetooth are handled in that panel; there are no separate tray applets. Bluetooth is off after boot until you turn it on there. For VPNs or editing a connection use `nmtui` in a terminal.
 - The launcher is fuzzel (`SUPER+D`). The power menu and the clipboard picker use it too.
-- Small utility windows float centred instead of tiling: the mixer, Bluetooth manager, network editor and file dialogs (`window_rule` in `home/hyprland.nix`).
+- Small utility windows float centred instead of tiling: the mixer, Bluetooth manager and file dialogs (`window_rule` in `home/hyprland.nix`).
 - Optional, off by default, in `home/desktop-extras.nix`:
   - `my.desktop.nightLight.enable`: hyprsunset, warmer colours from 20:00.
   - `my.desktop.colorPicker.enable`: hyprpicker on `SUPER+SHIFT+C`.

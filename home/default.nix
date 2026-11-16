@@ -6,7 +6,6 @@
     ./cli.nix
     ./session.nix
     ./hyprland.nix
-    ./vscode.nix
     ./editor/neovim # nixvim, split into one file per topic
     ./yazi.nix
     ./jujutsu.nix

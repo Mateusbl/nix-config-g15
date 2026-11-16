@@ -43,7 +43,7 @@ in
     image = wallpaper;
     base16Scheme = palette;
 
-    # Icons for Thunar, fuzzel, the tray and GTK dialogs. Without an icon theme they fall back to
+    # Icons for fuzzel, the tray and GTK dialogs. Without an icon theme they fall back to
     # whatever generic icons happen to be installed. Papirus' folders are blue, which suits the
     # palette.
     icons = {
