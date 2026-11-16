@@ -32,7 +32,6 @@
     wget
     pciutils
     usbutils
-    file-roller # archive backend for thunar-archive-plugin
   ];
 
   # Keep at most 1 GiB of system logs (the default is up to 4 GiB of the root filesystem).

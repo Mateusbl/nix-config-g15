@@ -1,4 +1,4 @@
-# TypeScript/JavaScript (React, Vite) and Tailwind. Servers come from the project's devenv.
+# TypeScript/JavaScript (React, Vite, Angular) and Tailwind. Servers come from the project's devenv.
 # HTML/CSS servers are editor-owned and live in config-files.nix.
 { config, lib, ... }:
 
@@ -49,6 +49,11 @@ in
         enable = true;
         package = null;
       };
+      # Angular templates and components. It only starts in a project with angular.json.
+      angularls = {
+        enable = true;
+        package = null;
+      };
     };
 
     plugins.conform-nvim.settings.formatters_by_ft = {
@@ -63,7 +68,7 @@ in
       vitest.enable = true;
     };
 
-    extraFiles."lua/lang_web.lua".source = ../lua/lang_web.lua;
+    extraFiles."lua/lang_web.lua".text = import ../lua/lang_web.nix;
 
     # Start the servers/formatters from the project (node_modules, then devenv).
     extraConfigLuaPost = ''
@@ -71,12 +76,23 @@ in
       for _, server in ipairs({ "vtsls", "eslint", "tailwindcss" }) do
         devshell.wrap_lsp(server)
       end
+      -- Angular: lspconfig's default builds the ngserver command from Neovim's own PATH. Give
+      -- it a plain command instead, so it is started from the project's devshell like the
+      -- others, and point it at the project's node_modules (its TypeScript and Angular).
+      vim.lsp.config("angularls", { cmd = { "ngserver", "--stdio" } })
+      devshell.wrap_lsp("angularls", {
+        extra_args = function(root)
+          local node_modules = vim.fs.joinpath(root, "node_modules")
+          return { "--tsProbeLocations", node_modules, "--ngProbeLocations", node_modules }
+        end,
+      })
       require("lang_web").setup_dap() -- js-debug from the devshell
       devshell.register({ "javascript", "javascriptreact", "typescript", "typescriptreact" }, {
         { bin = "node", what = "runtime" },
         { bin = "vtsls", what = "TypeScript language server", version = false },
         { bin = "vscode-eslint-language-server", what = "ESLint language server", version = false },
         { bin = "tailwindcss-language-server", what = "Tailwind language server", version = false },
+        { bin = "ngserver", what = "Angular language server (Angular projects)", version = false },
         { bin = "prettier", what = "formatter", node = true },
         { bin = "biome", what = "formatter (if biome.json)", node = true },
         { bin = "js-debug", what = "debug adapter", version = false },

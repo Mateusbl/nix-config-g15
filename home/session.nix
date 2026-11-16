@@ -41,11 +41,25 @@
     };
   };
 
-  # Default apps: Thunar for folders, Mousepad for plain text.
+  # Default apps: Yazi (in a Ghostty window) for folders, Mousepad for plain text.
+  # Yazi is a terminal program, so "open folder" requests from other apps (a browser's
+  # "show in folder") need a desktop entry that starts it inside a terminal.
+  xdg.desktopEntries.yazi-ghostty = {
+    name = "Yazi";
+    genericName = "File Manager";
+    icon = "system-file-manager";
+    exec = "ghostty -e yazi %f";
+    mimeType = [ "inode/directory" ];
+    categories = [
+      "System"
+      "FileManager"
+    ];
+  };
+
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
-      "inode/directory" = "thunar.desktop";
+      "inode/directory" = "yazi-ghostty.desktop";
       "text/plain" = "org.xfce.mousepad.desktop";
     };
   };
@@ -92,7 +106,7 @@
         # Inner lists are drawn as one group.
         right = [
           "SystemInfo"
-          "Tray" # icons of apps that live in the background (nm-applet, blueman, ...)
+          "Tray" # icons of apps that keep running in the background
           [
             "Tempo"
             "Privacy" # shows when the microphone, camera or screen sharing is in use
@@ -127,13 +141,6 @@
       };
     };
   };
-
-  # Tray applets (shown in the bar's tray, themed by Stylix's GTK theme).
-  # nm-applet: pick a Wi-Fi network, enter its password (stored in oo7), manage VPNs.
-  # blueman-applet: pair and connect Bluetooth devices. Both are systemd user services tied to
-  # the graphical session, like the other session services here.
-  services.network-manager-applet.enable = true;
-  services.blueman-applet.enable = true;
 
   # Clipboard history: a wl-paste watcher (systemd user service, started with the graphical
   # session like mako/hyprpaper/ashell). SUPER+SHIFT+V picks from it (clipboard-pick).

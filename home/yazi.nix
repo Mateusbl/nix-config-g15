@@ -27,7 +27,6 @@
         package = pkgs.yaziPlugins.git;
         setup = true;
       };
-      smart-enter = pkgs.yaziPlugins.smart-enter; # enter a directory or open a file
       mount = pkgs.yaziPlugins.mount; # mount/unmount/eject partitions
       chmod = pkgs.yaziPlugins.chmod; # chmod selected files
     };
@@ -121,21 +120,6 @@
     # (yazi-config/preset/keymap-default.toml), so no default changes.
     keymap.mgr.prepend_keymap = [
       {
-        on = [
-          "g"
-          "r"
-        ];
-        run = "shell --orphan -- thunar \"$(dirname %h)\"";
-        desc = "Reveal in Thunar";
-      }
-      {
-        # smart-enter's README binds `l`; that would change a default key, so it gets
-        # its own key instead (see docs/questions.md).
-        on = "<C-l>";
-        run = "plugin smart-enter";
-        desc = "Enter the child directory, or open the file";
-      }
-      {
         on = "M";
         run = "plugin mount";
         desc = "Mount manager";
@@ -158,8 +142,8 @@
     zathura # PDF (zathura in nixpkgs includes the mupdf PDF plugin)
   ];
 
-  # Default apps for the desktop (Thunar, xdg-open). Directories -> Thunar and
-  # text/plain -> Mousepad are set in home/session.nix and stay as they are.
+  # Default apps for xdg-open. Directories -> Yazi and text/plain -> Mousepad are set in
+  # home/session.nix.
   xdg.mimeApps.defaultApplications =
     let
       imv = "imv.desktop";

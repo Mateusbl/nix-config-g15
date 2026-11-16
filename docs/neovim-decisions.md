@@ -6,7 +6,7 @@ questions that only you can answer.
 ## Devshell layer
 
 **Cached `direnv export json` instead of running `direnv exec` per command.** The brief asked
-for every project tool to be launched through `direnv exec <root> <cmd>`. `lua/devshell.lua`
+for every project tool to be launched through `direnv exec <root> <cmd>`. `lua/devshell.nix`
 computes the same environment (`direnv export json` in that directory). It does this once per
 `.envrc` and reuses it, then starts the tool with it. `direnv exec` pays the direnv startup
 cost on every call. With format-on-save (500 ms timeout) that cost would be paid on every
@@ -83,15 +83,17 @@ python, ruff, prettier, mvn) also show a version.
   actions, and conform runs `ruff_organize_imports` + `ruff_format` on save.
 - **dap-python's adapter Python is a plain `"python3"`.** nixvim's default is a Nix-built
   `python3.withPackages [debugpy]`. That would be a project toolchain inside the editor
-  closure. `lua/lang_python.lua` replaces the adapter command with the project's python
+  closure. `lua/lang_python.nix` replaces the adapter command with the project's python
   anyway.
 - **Test runner:** pytest by default. `my.neovim.languages.python.testRunner = "django"`
   switches neotest and dap-python to Django's runner (`manage.py test`).
 
 ## TypeScript / React
 
-- **angularls removed.** None of your stacks is Angular (see `docs/neovim-audit.md`). The
-  `htmlangular` formatter entry went with it.
+- **angularls is a project server.** It starts only in a project with `angular.json`, from
+  `ngserver` in that project's devenv (`pkgs.angular-language-server`). lspconfig's default
+  command looks `ngserver` up on Neovim's own PATH, so `languages/web.nix` replaces it with a
+  plain command that goes through the devshell layer.
 - **prettierd dropped.** It is a global daemon that caches prettier versions, and it is not in
   any devshell contract. The formatter is now biome when the project has `biome.json` /
   `biome.jsonc`, otherwise prettier from `node_modules/.bin`, then from the devshell.
@@ -175,7 +177,7 @@ only a client.
 
 - Extra files beyond the requested list: `treesitter.nix` (syntax trees fit no other
   topic), `tasks.nix` (overseer), `devshell.nix`, `optional.nix`, `performance.nix`,
-  and `lua/*.lua` for the code that is easier to read as Lua than as Nix strings.
+  and `lua/*.nix`: the Lua modules, each kept as one Nix string so the config is Nix only.
 - Options live under `my.neovim.*`. Features that existed before Phase 1 default to *on*,
   to keep Phase 1 behaviour-identical. The new optional modules default to *off*.
 - No existing keymap was renamed. Every VS Code key is an alias added next to the
@@ -183,4 +185,4 @@ only a client.
 
 ## Questions
 
-Open questions live in `docs/questions.md`.
+

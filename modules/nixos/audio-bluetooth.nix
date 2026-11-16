@@ -8,10 +8,11 @@
     pulse.enable = true;
   };
 
-  # Bluetooth (blueman-manager is launchable from the launcher)
+  # Bluetooth. The radio stays off after boot; turn it on from the bar's settings panel.
+  # blueman-manager (launcher, or right-click the panel's Bluetooth button) pairs new devices.
   hardware.bluetooth = {
     enable = true;
-    powerOnBoot = true;
+    powerOnBoot = false;
   };
   services.blueman.enable = true;
 }

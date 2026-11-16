@@ -18,7 +18,7 @@ in
     };
 
     # Every test adapter runs its commands with the project's devshell environment
-    # (lua/devshell.lua). Adapters are added in languages/*.nix.
+    # (lua/devshell.nix). Adapters are added in languages/*.nix.
     extraConfigLuaPost = ''
       for _, adapter in ipairs(require("neotest.config").adapters or {}) do
         require("devshell").neotest(adapter)

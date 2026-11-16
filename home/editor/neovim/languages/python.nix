@@ -63,9 +63,9 @@ in
       };
     };
 
-    extraFiles."lua/lang_python.lua".source = ../lua/lang_python.lua;
+    extraFiles."lua/lang_python.lua".text = import ../lua/lang_python.nix;
 
-    # Start the servers/formatters from the project's devenv (lua/devshell.lua).
+    # Start the servers/formatters from the project's devenv (lua/devshell.nix).
     extraConfigLuaPost = ''
       local devshell = require("devshell")
       devshell.wrap_lsp("pyright")

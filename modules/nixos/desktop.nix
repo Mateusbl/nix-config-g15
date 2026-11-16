@@ -1,4 +1,4 @@
-# Display manager, Hyprland (UWSM), portals and the Thunar file-manager stack.
+# Display manager, Hyprland (UWSM), portals.
 { config, pkgs, ... }:
 
 let
@@ -34,23 +34,13 @@ in
   };
   security.pam.services.hyprlock = { };
 
-  # Electron apps (VS Code, etc.) run natively on Wayland instead of XWayland
+  # Electron apps run natively on Wayland instead of XWayland
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
   # GTK portal so file-open/save dialogs work in apps under Hyprland
   xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
 
-  # Thunar & companions
-  programs.thunar = {
-    enable = true;
-    plugins = with pkgs; [
-      thunar-archive-plugin
-      thunar-volman
-    ];
-  };
-  programs.xfconf.enable = true; # Thunar preferences persist outside XFCE
-  services.gvfs.enable = true; # trash, mounts, network shares
-  services.udisks2.enable = true; # removable drives show up in Thunar
-  services.tumbler.enable = true; # thumbnails
+  # Removable drives: Yazi's mount plugin (`M`) mounts and ejects them through udisks.
+  services.udisks2.enable = true;
   programs.dconf.enable = true; # needed for Stylix/home-manager GTK settings
 }

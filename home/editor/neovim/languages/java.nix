@@ -52,7 +52,7 @@ in
         enable = true;
         jdtLanguageServerPackage = null; # `package` would be the nvim-jdtls plugin itself, keep it
         settings = {
-          # Only the binary name: lua/devshell.lua finds it in the project's devenv and
+          # Only the binary name: lua/devshell.nix finds it in the project's devenv and
           # adds the Lombok agent and per-project arguments. Root detection comes from
           # nvim-lspconfig (pom.xml, build.gradle, mvnw, gradlew, .git, ...) per buffer.
           cmd = [ "jdtls" ];
@@ -95,7 +95,7 @@ in
       }
     ];
 
-    extraFiles."lua/lang_java.lua".source = ../lua/lang_java.lua;
+    extraFiles."lua/lang_java.lua".text = import ../lua/lang_java.nix;
 
     extraConfigLuaPost = ''
       require("lang_java").setup()
