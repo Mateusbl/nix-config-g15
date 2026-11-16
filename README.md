@@ -56,7 +56,7 @@ Pick one of two paths:
 | | Path | Data on disk |
 | --- | --- | --- |
 | **A** | Switch the NixOS that is already on this laptop to this config | kept, nothing is reformatted |
-| **B** | Install from a live USB onto an empty disk with disko | **erased** |
+| **B** | Install from the NixOS installer USB with disko | **erased** |
 
 Before you start, for both paths:
 
@@ -133,11 +133,39 @@ If something goes wrong:
 
 From here on, use the aliases in [Daily use](#daily-use).
 
-### B. Fresh install on an empty disk
+### B. Fresh install from the installer USB
 
-> **This erases the whole disk.**
+> **This erases the whole disk.** Copy off everything you want to keep first.
 
-1. Boot a NixOS live ISO, connect to the network, and get the repository:
+Every step from a blank USB stick to the finished desktop:
+
+1. **Make the USB stick.** Download the *Graphical ISO image* (GNOME, 64-bit Intel/AMD) from
+   <https://nixos.org/download>. It has a Wi-Fi menu and a terminal, which the steps below use.
+   Find the stick's name with `lsblk`, then write the image to it (this erases the stick; replace
+   both placeholders):
+
+   ```bash
+   sudo dd if=PATH-TO-THE.iso of=/dev/sdX bs=4M status=progress oflag=sync
+   ```
+
+2. **Boot it.** Plug the stick in, power on and press `F12` at the Dell logo, then pick the stick
+   under *UEFI Boot*. The firmware settings that let the current NixOS boot (Secure Boot off) are
+   the ones this install needs too, so there is nothing to change there. Close the graphical
+   installer window if it opens: it is not used.
+
+3. **Network and terminal.** Connect to Wi-Fi from the menu in the top-right corner. Open the
+   *Console* app. Check the connection:
+
+   ```bash
+   ping -c 3 nixos.org
+   ```
+
+4. **Get the repository.** The first command opens a shell that has `git`; stay in it until the
+   end.
+
+   ```bash
+   nix-shell -p git
+   ```
 
    ```bash
    git clone https://github.com/mateusbl/nix-config-g15
@@ -147,37 +175,104 @@ From here on, use the aliases in [Daily use](#daily-use).
    cd nix-config-g15
    ```
 
-2. Adapt `hosts/g15/disko.nix` to the machine. Find the disk with `lsblk` and set `device`
-   (`/dev/nvme0n1` is a guess). Set the swap `size` to at least the amount of RAM, or hibernation
-   will not work.
+   If the config has not been merged into the default branch yet, switch to its branch now with
+   `git switch BRANCH-NAME`.
 
-3. Delete the `./existing-install.nix` line from the imports in `hosts/g15/default.nix`. Those
-   UUIDs belong to the old install and don't exist on a fresh disk.
+5. **Check the disk settings.** List the disks:
 
-4. Partition, encrypt, format and mount. It asks for the LUKS passphrase you want:
+   ```bash
+   lsblk -d -o NAME,SIZE,MODEL
+   ```
+
+   The internal SSD should be `nvme0n1`. If it has another name, change `device` in
+   `hosts/g15/disko.nix` (`nano hosts/g15/disko.nix`). In the same file, the swap `size` (20G)
+   must be at least the amount of RAM (`free -h`), or hibernation will not work.
+
+6. **Remove the old-install bridge.** `hosts/g15/existing-install.nix` holds the UUIDs of the
+   partitions that are about to be erased. Delete its line from the imports:
+
+   ```bash
+   sed -i '/existing-install.nix/d' hosts/g15/default.nix
+   ```
+
+   ```bash
+   git rm hosts/g15/existing-install.nix
+   ```
+
+7. **Partition, encrypt, format and mount.** This is the step that erases the disk. It asks you
+   to choose a passphrase for the swap partition and then for the root partition. Use the same
+   one for both, so the boot asks only once.
 
    ```bash
    sudo nix --experimental-features 'nix-command flakes' run github:nix-community/disko/latest -- --mode destroy,format,mount --flake .#g15
    ```
 
-5. Install. At the end it asks for a root password:
+   Check the result: `/mnt`, `/mnt/boot`, `/mnt/home` and `/mnt/nix` must be listed.
+
+   ```bash
+   findmnt -R /mnt
+   ```
+
+8. **Install.** This downloads the system and compiles bootvine, so it takes a while. At the end
+   it asks for a root password.
 
    ```bash
    sudo nixos-install --flake .#g15
    ```
 
-6. Give your user a password, otherwise you cannot log in (the config sets none on purpose):
+9. **Set your own password.** The config sets none on purpose, and without one you cannot log in:
 
    ```bash
    sudo nixos-enter --root /mnt -c 'passwd mateus'
    ```
 
-7. Reboot, log in, and put the repository where `nh` expects it. Commit the two edits from steps 2
-   and 3 so they are not lost:
+10. **Take the repository with you**, including the edits from steps 5 and 6, to the place `nh`
+    expects it:
 
-   ```bash
-   git clone https://github.com/mateusbl/nix-config-g15 ~/Code/nix-config
-   ```
+    ```bash
+    sudo mkdir -p /mnt/home/mateus/Code
+    ```
+
+    ```bash
+    sudo cp -r . /mnt/home/mateus/Code/nix-config
+    ```
+
+    ```bash
+    sudo nixos-enter --root /mnt -c 'chown -R mateus:users /home/mateus'
+    ```
+
+11. **Reboot into the new system** and pull the stick out when the screen goes dark:
+
+    ```bash
+    reboot
+    ```
+
+    bootvine asks for the disk passphrase, then ly asks for user `mateus` and the password from
+    step 9. Hyprland starts after login. `SUPER + Return` opens a terminal.
+
+12. **Finish.** Connect to Wi-Fi from the tray icon in Waybar. Then confirm that rebuilding works
+    from the installed system and record the edits from steps 5 and 6:
+
+    ```bash
+    cd ~/Code/nix-config
+    ```
+
+    ```bash
+    nrt
+    ```
+
+    ```bash
+    git commit -am "g15: installed with disko"
+    ```
+
+If something goes wrong:
+
+- **disko or `nixos-install` stops with an error:** nothing is bootable yet, but both can simply be
+  run again from the same terminal after fixing the cause.
+- **The new system does not boot or you cannot log in:** boot the USB stick again, repeat steps 3
+  to 6, then mount the installed system without formatting (`--mode mount` instead of
+  `--mode destroy,format,mount` in the command of step 7). After that, `nixos-install` and
+  `nixos-enter` from steps 8 and 9 work again.
 
 ### After either install
 
@@ -248,14 +343,14 @@ that the LUKS mappings are now named `/dev/mapper/cryptroot` and `/dev/mapper/cr
 
 You can drop `existing-install.nix` (and its import in `hosts/g15/default.nix`) after either of these:
 
-- a reinstall with disko (Installation, case B)
+- a reinstall with disko (Installation, path B)
 - giving the existing partitions disko's labels. This doesn't touch any data. Check the partition numbers with `lsblk -o NAME,PARTLABEL,UUID,SIZE` first:
 
   ```bash
   sudo sgdisk -c 1:disk-main-ESP -c 2:disk-main-root -c 3:disk-main-swap /dev/nvme0n1
   ```
 
-A fresh install with disko is described under [Installation](#installation), case B.
+A fresh install with disko is described step by step under [Installation](#installation), path B.
 
 ## NVIDIA
 
