@@ -12,6 +12,7 @@
     ./jujutsu.nix
     ./desktop-scripts.nix
     ./desktop-extras.nix
+    ./self-tests.nix
   ];
 
   home.stateVersion = "26.05";

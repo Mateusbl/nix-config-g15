@@ -45,18 +45,28 @@ home/                          home-manager modules, one topic per file
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
   desktop-scripts.nix          power menu, screenshots, clipboard picker; XDG user dirs
   desktop-extras.nix           optional: night light, colour picker, screen recorder
+  self-tests.nix               installs the two commands from tests/
 docs/                          Neovim docs, devshell contract, open questions (questions.md)
-tests/                         nvim-smoke.sh (+ .nix: the same test as a flake check), post-switch-check.sh
+tests/                         nvim-smoke and post-switch-check commands, written in Nix; the flake check
 assets/nix-bg.png              wallpaper used by Stylix
 ```
 
 ## Installation
 
-Two cases. **A** keeps everything on the laptop as it is installed today. **B** wipes a disk and
-installs from scratch. In both, the flake output is called `g15`.
+Pick one of two paths:
 
-The first build takes a while: most packages are downloaded from cache.nixos.org, but bootvine is
-compiled on the machine.
+| | Path | Data on disk |
+| --- | --- | --- |
+| **A** | Switch the NixOS that is already on this laptop to this config | kept, nothing is reformatted |
+| **B** | Install from a live USB onto an empty disk with disko | **erased** |
+
+Before you start, for both paths:
+
+- Plug in the charger and have a working network connection. The first build downloads most
+  packages from cache.nixos.org and compiles bootvine locally, so allow some time.
+- Have a backup of anything you cannot lose. Path A does not reformat, but it does change the
+  boot path (bootvine shows the passphrase prompt).
+- The flake output is called `g15`. Every command below names it as `.#g15`.
 
 ### A. On the current NixOS install (nothing is reformatted)
 
@@ -94,10 +104,11 @@ compiled on the machine.
    sudo NIX_CONFIG="experimental-features = nix-command flakes" nixos-rebuild test --flake .#g15
    ```
 
-4. Log out and back in through ly, so the new session services start. Then check the machine:
+4. Log out and back in through ly, so the new session services start. Then, in a terminal inside
+   Hyprland, run the check this config installs. It only reads state and prints OK or FAIL per item:
 
    ```bash
-   tests/post-switch-check.sh
+   post-switch-check
    ```
 
 5. If the report is clean, make it permanent (this adds the boot entry):
@@ -106,9 +117,15 @@ compiled on the machine.
    sudo nixos-rebuild switch --flake .#g15
    ```
 
-   The boot screen and the passphrase prompt change with this step (bootvine). The previous
-   generation stays in the boot menu: if something is wrong, pick it there, then run
-   `sudo nixos-rebuild switch --rollback`.
+   The boot screen and the passphrase prompt change with this step (bootvine).
+
+6. Reboot once and confirm the passphrase prompt, login and hibernation work.
+
+If something goes wrong:
+
+- **After step 3:** reboot. Nothing was written to the boot menu, so the old system starts.
+- **After step 5:** pick the previous generation in the systemd-boot menu, then make it the
+  default again with `sudo nixos-rebuild switch --rollback`.
 
 From here on, use the aliases in [Daily use](#daily-use).
 
@@ -165,6 +182,8 @@ From here on, use the aliases in [Daily use](#daily-use).
 - **Projects:** run `direnv allow` once in each project that has an `.envrc`. `docs/devshell-contract.md`
   lists what a project's devenv must provide for Neovim.
 - **Secrets:** oo7 creates its keyring at the first login. Verification steps are in `docs/oo7-notes.md`.
+- **Neovim:** `nvim-smoke` opens a file of every supported language and reports Lua errors and
+  the startup time.
 - **Open decisions** are collected in `docs/questions.md`.
 
 ## Daily use
@@ -449,7 +468,7 @@ Neovim this flake builds on a file of every supported language and fails on any 
 After switching, check the running machine (run it inside the Hyprland session; it changes nothing):
 
 ```bash
-tests/post-switch-check.sh
+post-switch-check
 ```
 
 It reports OK/FAIL for the services, oo7, bootvine, hibernation, the battery profile, Hyprland
@@ -457,7 +476,7 @@ config errors, the installed commands and the theme. The Neovim test can also be
 prints the startup time:
 
 ```bash
-tests/nvim-smoke.sh
+nvim-smoke
 ```
 
 Known evaluation warning that doesn't break anything: Stylix sets `programs.rofi.font`, which is

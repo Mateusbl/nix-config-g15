@@ -1,4 +1,4 @@
-# Runs tests/nvim-smoke.sh as a flake check (`nix flake check`), against exactly the Neovim
+# Runs the nvim-smoke command (tests/nvim-smoke-script.nix) as a flake check (`nix flake check`), against exactly the Neovim
 # package and the ~/.config/nvim files this flake builds for the user. A Lua error in the editor
 # config then fails the check instead of showing up after a switch.
 {
@@ -8,6 +8,8 @@
 }:
 
 let
+  smoke = import ./nvim-smoke-script.nix { inherit pkgs; };
+
   # What home-manager would install under ~/.config/nvim (init.lua, lua/*.lua, queries).
   nvimFiles = lib.filterAttrs (
     name: file: file.enable && lib.hasPrefix "nvim/" name
@@ -23,9 +25,6 @@ pkgs.runCommand "nvim-smoke"
   {
     nativeBuildInputs = [
       hm.programs.nixvim.build.package
-      pkgs.gawk
-      pkgs.gnugrep
-      pkgs.gnused
     ];
   }
   ''
@@ -37,5 +36,5 @@ pkgs.runCommand "nvim-smoke"
 
     # pipefail: without it the pipe to `tee` would hide a failing test.
     set -o pipefail
-    bash ${./nvim-smoke.sh} | tee $out
+    ${lib.getExe smoke} | tee $out
   ''
