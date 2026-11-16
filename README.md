@@ -2,7 +2,7 @@
 
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
-- **Desktop:** Hyprland (Lua config) started through UWSM, with the `ly` display manager, Waybar, Rofi, Mako, hyprlock/hypridle and Ghostty
+- **Desktop:** Hyprland (Lua config) started through UWSM, with the `ly` display manager, ashell (bar), fuzzel (launcher), Mako, hyprlock/hypridle and Ghostty
 - **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the ly login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
@@ -102,8 +102,8 @@ Before you start, for both paths:
    sudo NIX_CONFIG="experimental-features = nix-command flakes" nixos-rebuild test --flake .#g15
    ```
 
-4. Log out and back in through ly, so the new session services start. Look around: Waybar, the
-   launcher (rofi), a terminal, sound, Wi-Fi. Two quick checks for things you cannot see:
+4. Log out and back in through ly, so the new session services start. Look around: the bar, the
+   launcher (`SUPER+D`), a terminal, sound, Wi-Fi. Two quick checks for things you cannot see:
 
    ```bash
    systemctl --failed
@@ -250,7 +250,7 @@ Every step from a blank USB stick to the finished desktop:
     bootvine asks for the disk passphrase, then ly asks for user `mateus` and the password from
     step 9. Hyprland starts after login. `SUPER + Return` opens a terminal.
 
-12. **Finish.** Connect to Wi-Fi from the tray icon in Waybar. Then confirm that rebuilding works
+12. **Finish.** Connect to Wi-Fi from the bar (click the icons on the right, or the tray icon). Then confirm that rebuilding works
     from the installed system and record the edits from steps 5 and 6:
 
     ```bash
@@ -306,15 +306,15 @@ which is still `nixos` (set in `flake.nix`). If you change `hostname` there to `
 Settings live in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itself, see `nvidia.nix`).
 Nothing is throttled to save battery: the panel stays at 120 Hz and Wi-Fi power saving is off.
 
-- **Profile follows the charger:** `performance` on AC, `balanced` on battery, set when the charger is (un)plugged and at boot. Waybar's `PWR <profile>` label cycles it on click (it is reset at the next plug/unplug).
-- **Low-battery safety net (UPower):** low at 20%, critical at 10%, hibernate at 5%. The Waybar battery label shows `LOW` and `CRIT` at the first two.
+- **Profile follows the charger:** `performance` on AC, `balanced` on battery, set when the charger is (un)plugged and at boot. The bar's settings panel has a button to change it by hand (it is reset at the next plug/unplug).
+- **Low-battery safety net (UPower):** low at 20%, critical at 10%, hibernate at 5%.
 - Idle behaviour: dim after 5 min, lock after 10, screen off after 11, suspend-then-hibernate after 30 (and on lid close after 2 h of sleep).
 
 ## Out of memory
 
 `modules/nixos/oom.nix` runs earlyoom. When less than 10% of RAM is available and less than 20% of swap
 is free, it ends the biggest process (SIGTERM, then SIGKILL at half those values) instead of letting the
-desktop freeze. It avoids the session (Hyprland, Waybar, PipeWire, oo7, ...), prefers Firefox tab
+desktop freeze. It avoids the session (Hyprland, ashell, PipeWire, oo7, ...), prefers Firefox tab
 processes, and sends a desktop notification naming what it killed.
 
 ## Disks (disko)
@@ -463,15 +463,16 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 | Key | Does |
 | --- | --- |
 | `SUPER+Escape` | lock |
-| `SUPER+SHIFT+Escape` | power menu (rofi): lock, suspend, reboot, poweroff, logout. Nothing happens unless you pick one |
+| `SUPER+SHIFT+Escape` | power menu (fuzzel): lock, suspend, reboot, poweroff, logout. Nothing happens unless you pick one |
 | `Print` | region screenshot to the clipboard |
 | `Shift+Print` / `Ctrl+Print` | region / full screen to `~/Pictures/Screenshots`, with a notification |
 | `SUPER+SHIFT+V` | clipboard history (cliphist, started with the session) |
 | `XF86AudioPlay/Next/Prev` | media control via playerctl, sent to the last used player (playerctld) |
 | Volume / brightness / mute keys | change the value and show it in a small notification with a bar (`osd`, drawn by mako in the theme colours) |
 
-- Waybar shows a tray with nm-applet (Wi-Fi networks, VPNs; passwords go to oo7) and blueman-applet (Bluetooth). Clicking the volume opens pavucontrol.
-- Waybar's battery label turns yellow/red at the low/critical thresholds, and the power-profile label is tinted per profile, using the Stylix palette.
+- The bar is ashell (`home/session.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pavucontrol; right-clicking Bluetooth opens blueman-manager.
+- The tray holds nm-applet (Wi-Fi networks, VPNs; passwords go to oo7) and blueman-applet (Bluetooth).
+- The launcher is fuzzel (`SUPER+D`). The power menu and the clipboard picker use it too.
 - Small utility windows float centred instead of tiling: the mixer, Bluetooth manager, network editor and file dialogs (`window_rule` in `home/hyprland.nix`).
 - Optional, off by default, in `home/desktop-extras.nix`:
   - `my.desktop.nightLight.enable`: hyprsunset, warmer colours from 20:00.
@@ -561,9 +562,6 @@ running it.
 
 There are no automated tests of the running machine or of the Neovim config. After a switch,
 `systemctl --failed` and `systemctl --user --failed` show services that did not start.
-
-Known evaluation warning that doesn't break anything: Stylix sets `programs.rofi.font`, which is
-deprecated upstream.
 
 ## License
 

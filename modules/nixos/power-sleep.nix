@@ -27,7 +27,7 @@ in
   # charger: "performance" when plugged in, "balanced" on battery. Nothing is throttled to save
   # power (no power-saver profile, no Wi-Fi power saving, the panel stays at 120 Hz). The udev
   # rules fire when the charger is (un)plugged and also once at boot. You can still change the
-  # profile by hand (Waybar's PWR label cycles it on click); it is reset at the next plug/unplug.
+  # profile by hand (the bar's settings panel has a power profile button); it is reset at the next plug/unplug.
   services.udev.extraRules = ''
     SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="0", TAG+="systemd", ENV{SYSTEMD_WANTS}="power-profile-battery.service"
     SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}="power-profile-ac.service"
@@ -37,7 +37,6 @@ in
 
   # A safety net, not a power saver: UPower watches the battery and acts before it runs flat:
   # low at 20%, critical at 10%, and at 5% the laptop hibernates (the encrypted swap partition doubles as the hibernation target).
-  # Waybar's battery label changes at the same thresholds.
   services.upower = {
     enable = true;
     percentageLow = 20;

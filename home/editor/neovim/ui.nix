@@ -6,7 +6,7 @@
 { config, ... }:
 
 let
-  # The same base16 palette Stylix uses everywhere else (Ghostty, Waybar, GTK, ...).
+  # The same base16 palette Stylix uses everywhere else (Ghostty, the bar, GTK, ...).
   c = config.lib.stylix.colors.withHashtag;
 
   # A lualine theme built from the palette. lualine's "auto" theme guesses from

@@ -52,3 +52,10 @@ Decisions only you can make. Until you answer, the config uses the default given
     loses Lua highlighting and stylua), `assets/nix-bg.png` (wallpaper), `README.md`, `docs/*.md`,
     `CLAUDE.md`, `LICENSE`, `.gitignore`. Say which of these should go.
     *Default: keep them.*
+
+## Desktop
+
+12. **Drop the two tray applets?** ashell's settings panel already connects to Wi-Fi networks and
+    toggles Bluetooth, so nm-applet and blueman-applet now partly duplicate it. They still add
+    things the panel lacks: editing connections and VPNs (nm-applet) and pairing new devices
+    (blueman). *Default: keep both.*

@@ -23,7 +23,7 @@
     extraArgs = [
       # Never pick the session itself. These are matched against process names.
       "--avoid"
-      "Hyprland|uwsm|waybar|pipewire|wireplumber|oo7-daemon|bootvine|systemd"
+      "Hyprland|uwsm|ashell|pipewire|wireplumber|oo7-daemon|bootvine|systemd"
       # Prefer Firefox tab processes: losing a tab is better than losing the whole browser.
       "--prefer"
       "Web Content|Isolated Web Co"

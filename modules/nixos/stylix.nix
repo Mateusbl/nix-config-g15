@@ -1,4 +1,4 @@
-# System-wide theme (Stylix). Neovim, Ghostty, Waybar, Rofi, GTK, Hyprland borders, ... all take
+# System-wide theme (Stylix). Neovim, Ghostty, ashell, fuzzel, GTK, Hyprland borders, ... all take
 # their colours from the palette below, so changing it here re-themes everything.
 { pkgs, ... }:
 
@@ -43,7 +43,7 @@ in
     image = wallpaper;
     base16Scheme = palette;
 
-    # Icons for Thunar, Rofi, the tray and GTK dialogs. Without an icon theme they fall back to
+    # Icons for Thunar, fuzzel, the tray and GTK dialogs. Without an icon theme they fall back to
     # whatever generic icons happen to be installed. Papirus' folders are blue, which suits the
     # palette.
     icons = {
