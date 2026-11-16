@@ -24,12 +24,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Installs plain upstream Nix. Despite the action's name, no Cachix cache is used:
-      # the only substituter is cache.nixos.org.
-      - uses: cachix/install-nix-action@v31
+      # The official installer script, so the workflow needs no third-party action.
+      # The only substituter is cache.nixos.org.
+      - name: Install Nix
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSfL https://nixos.org/nix/install | sh -s -- --daemon --yes
+          echo "experimental-features = nix-command flakes" | sudo tee -a /etc/nix/nix.conf
+          sudo systemctl restart nix-daemon
+          echo "/nix/var/nix/profiles/default/bin" >> "$GITHUB_PATH"
 
       - name: Formatting (nixfmt)
-        run: nix fmt -- --check $(git ls-files '*.nix')
+        run: git ls-files -z '*.nix' | xargs -0 nix fmt -- --check
 
       - name: Evaluate the flake and the whole system
         run: nix flake check --no-build
