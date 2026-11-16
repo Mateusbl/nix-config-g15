@@ -11,8 +11,10 @@
       catp = "bat -p";
       top = "btop";
       lg = "lazygit";
-      nrs = "nh os switch";
-      nrt = "nh os test";
+      # -H g15: nh looks for a flake output named after the hostname ("nixos"), but the
+      # output in flake.nix is called "g15".
+      nrs = "nh os switch -H g15";
+      nrt = "nh os test -H g15";
       clean = "nh clean all --keep-since 4d --keep 3";
     };
   };

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Post-switch check: is everything this config sets up actually running on this machine?
 #
-# Run it inside the Hyprland session after `nh os test` or `nh os switch`:
+# Run it inside the Hyprland session after `nrt` or `nrs` (nh os test/switch -H g15):
 #   tests/post-switch-check.sh
 # It only reads state (no sudo, nothing is changed). Each line is OK, FAIL (with a hint) or
 # INFO. The exit code is the number of failed checks.
