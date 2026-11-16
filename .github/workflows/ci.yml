@@ -1,0 +1,41 @@
+# Checks every push to main and every pull request. Nothing is deployed from here.
+#
+# The system is evaluated, not built: a full build would download and compile several GB
+# (kernel modules, NVIDIA driver, bootvine) on every run. Evaluation already catches wrong
+# option names, type errors, missing packages and broken imports.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Installs plain upstream Nix. Despite the action's name, no Cachix cache is used:
+      # the only substituter is cache.nixos.org.
+      - uses: cachix/install-nix-action@v31
+
+      - name: Formatting (nixfmt)
+        run: nix fmt -- --check $(git ls-files '*.nix')
+
+      - name: Evaluate the flake and the whole system
+        run: nix flake check --no-build
+
+      - name: Evaluate a fresh install (without existing-install.nix)
+        run: |
+          # The install guide (README, path B) removes this import; make sure that still evaluates.
+          sed -i '/existing-install.nix/d' hosts/g15/default.nix
+          nix eval --raw .#nixosConfigurations.g15.config.system.build.toplevel.drvPath

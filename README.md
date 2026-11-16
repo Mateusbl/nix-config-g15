@@ -553,6 +553,10 @@ The first checks the flake outputs and evaluates the whole NixOS configuration. 
 instantiates the system closure. The third builds the disko partitioning script without
 running it.
 
+**CI** (`.github/workflows/ci.yml`) runs on every pull request and every push to `main`: the
+nixfmt formatting check, `nix flake check --no-build`, and an evaluation of the system as a fresh
+install (without `existing-install.nix`). It evaluates only; it does not build the system.
+
 There are no automated tests of the running machine or of the Neovim config. After a switch,
 `systemctl --failed` and `systemctl --user --failed` show services that did not start.
 
