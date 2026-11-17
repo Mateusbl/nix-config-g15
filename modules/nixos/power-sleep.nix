@@ -22,6 +22,10 @@ in
   services.thermald.enable = true;
   zramSwap.enable = true;
 
+  # Wi-Fi power saving off. Leaving it unset is not the same: NetworkManager then keeps the
+  # kernel's default, which has power saving on (slower first packets, laggy SSH and calls).
+  networking.networkmanager.wifi.powersave = false;
+
   # --- Power profile ---------------------------------------------------------------------
   # power-profiles-daemon (above) sets the CPU's energy/performance bias. The profile follows the
   # charger: "performance" when plugged in, "balanced" on battery. Nothing is throttled to save

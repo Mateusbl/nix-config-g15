@@ -6,7 +6,7 @@ My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobi
 - **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the ly login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
-- **Editor:** Neovim (nixvim) set up for Java/Spring, Python (Django, FastAPI) and TypeScript/React/Angular. Project toolchains come from each project's devenv. VS Code is still installed
+- **Editor:** Neovim (nixvim) set up for Java/Spring, Python (Django, FastAPI) and TypeScript/React/Angular. Project toolchains come from each project's devenv
 
 Rules for working on this repository (also for AI assistants) are in `CLAUDE.md`.
 
@@ -303,7 +303,7 @@ which is still `nixos` (set in `flake.nix`). If you change `hostname` there to `
 ## Power
 
 Settings live in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itself, see `nvidia.nix`).
-Nothing is throttled to save battery: the panel stays at 120 Hz and Wi-Fi power saving is off.
+Nothing is throttled to save battery: the panel stays at 120 Hz and Wi-Fi power saving is off (set explicitly; the kernel default has it on).
 
 - **Profile follows the charger:** `performance` on AC, `balanced` on battery, set when the charger is (un)plugged and at boot. The bar's settings panel has a button to change it by hand (it is reset at the next plug/unplug).
 - **Low-battery safety net (UPower):** low at 20%, critical at 10%, hibernate at 5%.
@@ -456,7 +456,7 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 | Key | Does |
 | --- | --- |
 | `SUPER+Escape` | lock |
-| `SUPER+SHIFT+Escape` | power menu (fuzzel): lock, suspend, reboot, poweroff, logout. Nothing happens unless you pick one |
+| `SUPER+SHIFT+Escape` | power menu (fuzzel): lock, suspend, hibernate, reboot, poweroff, logout. Nothing happens unless you pick one |
 | `Print` | region screenshot to the clipboard |
 | `Shift+Print` / `Ctrl+Print` | region / full screen to `~/Pictures/Screenshots`, with a notification |
 | `SUPER+SHIFT+V` | clipboard history (cliphist, started with the session) |
