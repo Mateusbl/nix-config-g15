@@ -28,7 +28,7 @@ modules/nixos/                 shared system modules, one topic per file
   snapshots.nix                daily btrfs snapshots of /home (btrbk)
   secrets.nix                  oo7 as the only Secret Service (+ PAM unlock, portal)
   nix.nix                      nix settings, flake registry, GC, nh
-  nvidia.nix                   PRIME offload (Intel iGPU + NVIDIA dGPU)
+  nvidia.nix                   PRIME offload (Intel iGPU + NVIDIA dGPU), open kernel modules
   power-sleep.nix              lid/power key, suspend-then-hibernate, power profile
   oom.nix                      earlyoom: kills a runaway process before the machine freezes
   performance.nix              sched_ext scheduler, zram memory tuning, BBR networking
@@ -365,6 +365,16 @@ nvidia-offload <program>
 ```
 
 The bus IDs (`PCI:0:2:0` and `PCI:1:0:0`) come from `lspci | grep -E "VGA|3D"`.
+
+The kernel modules are NVIDIA's open-source ones (`hardware.nvidia.open = true`), which NVIDIA
+recommends for this card. If the card misbehaves after a driver update, set it back to `false` in
+`modules/nixos/nvidia.nix` to try the closed modules. Check which one is loaded with:
+
+```bash
+modinfo -F license nvidia
+```
+
+`Dual MIT/GPL` means open, `NVIDIA` means closed.
 
 ## Boot screen (bootvine)
 
