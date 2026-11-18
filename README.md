@@ -22,7 +22,7 @@ hosts/
     existing-install.nix       maps disko names onto the current partitions' UUIDs (temporary)
 modules/nixos/                 shared system modules, one topic per file
   base.nix                     networking, locale, system packages
-  boot.nix                     systemd-boot, latest kernel, git revision in generations
+  boot.nix                     systemd-boot signed by lanzaboote (Secure Boot), latest kernel
   bootvine.nix                 live systemd boot screen (from bootvine's own flake)
   storage.nix                  btrfs auto-scrub
   snapshots.nix                daily btrfs snapshots of /home (btrbk)
@@ -61,7 +61,7 @@ Pick one of two paths:
 Before you start, for both paths:
 
 - Plug in the charger and have a working network connection. The first build downloads most
-  packages from cache.nixos.org and compiles bootvine locally, so allow some time.
+  packages from cache.nixos.org and compiles bootvine and lanzaboote locally, so allow some time.
 - Have a backup of anything you cannot lose. Path A does not reformat, but it does change the
   boot path (bootvine shows the passphrase prompt).
 - The flake output is called `g15`. Every command below names it as `.#g15`.
@@ -124,6 +124,8 @@ Before you start, for both paths:
    The boot screen and the passphrase prompt change with this step (bootvine).
 
 6. Reboot once and confirm the passphrase prompt, login and hibernation work.
+
+7. Optional: turn on Secure Boot, see [Secure Boot](#secure-boot-lanzaboote).
 
 If something goes wrong:
 
@@ -213,7 +215,7 @@ Every step from a blank USB stick to the finished desktop:
    findmnt -R /mnt
    ```
 
-8. **Install.** This downloads the system and compiles bootvine, so it takes a while. At the end
+8. **Install.** This downloads the system and compiles bootvine and lanzaboote, so it takes a while. At the end
    it asks for a root password.
 
    ```bash
@@ -281,6 +283,8 @@ If something goes wrong:
 - **Projects:** run `direnv allow` once in each project that has an `.envrc`. `docs/devshell-contract.md`
   lists what a project's devenv must provide for Neovim.
 - **Secrets:** oo7 creates its keyring at the first login. Verification steps are in `docs/oo7-notes.md`.
+- **Secure Boot:** off until you turn it on in the firmware; the steps are in
+  [Secure Boot](#secure-boot-lanzaboote).
 
 ## Daily use
 
@@ -381,6 +385,65 @@ this nixpkgs still has.
 - It sits in the boot path (it shows the LUKS passphrase prompt). Try it with `nrt` first, which
   does not change the boot menu, and keep the previous generation selectable.
 - Tuning goes in `services.bootvine.settings` (see the comment in the file).
+
+## Secure Boot (lanzaboote)
+
+The boot loader is systemd-boot, installed and signed by
+[lanzaboote](https://github.com/nix-community/lanzaboote) (`modules/nixos/boot.nix`). Each
+generation becomes one signed file (kernel, initrd and command line together), so with Secure Boot
+on, the firmware only starts what your keys signed. The boot menu, the 10-generation limit and
+rollbacks work as before, and editing the kernel command line from the menu is off.
+
+- **Source:** the `lanzaboote` input in `flake.nix`, pinned to release v1.2.0 and compiled on this
+  machine (it is not in nixpkgs). Its Cachix is not used, like bootvine's.
+- **Keys:** your own, in `/var/lib/sbctl`, created automatically at the first boot after switching
+  (`generate-sb-keys.service`). Until they exist, lanzaboote installs unsigned files, which still
+  boot while Secure Boot is off. Never put these keys in git.
+- **NVIDIA and hibernation keep working:** nothing in this config turns on kernel lockdown or forced
+  module signatures, which are what would block them.
+
+### Turning it on (once)
+
+Do this after the first switch to this config and one reboot.
+
+1. Sign everything with the new keys, then check:
+
+   ```bash
+   nrs
+   ```
+
+   ```bash
+   sudo sbctl status
+   ```
+
+   ```bash
+   sudo sbctl verify
+   ```
+
+   `status` must show your keys as installed. `verify` lists the boot files: the ones in use must be
+   signed. If some are not, run `nrs` again before going on.
+
+2. **Put the firmware in Setup Mode.** Reboot, press `F2` at the Dell logo, and open the Secure
+   Boot settings. Turn on custom key management ("Expert Key Management" on Dell) and delete the
+   Platform Key (PK); that is what Setup Mode means. Menu names differ between BIOS versions. Save
+   and boot NixOS. `sudo sbctl status` now shows Setup Mode as enabled.
+
+3. **Enroll your keys, together with Microsoft's:**
+
+   ```bash
+   sudo sbctl enroll-keys --microsoft
+   ```
+
+   Keep `--microsoft`. The NVIDIA card's own firmware and Dell's updates are signed by Microsoft;
+   without those keys the firmware can refuse them and the laptop may not show a picture at all.
+
+4. **Turn Secure Boot on:** reboot, `F2`, enable Secure Boot, save.
+
+5. Boot NixOS and check that `sudo sbctl status` shows Secure Boot as enabled.
+
+If the laptop refuses to boot after step 4, go back into the firmware (`F2`) and turn Secure Boot
+off: the system starts exactly as before. Updates later need nothing extra: every `nrs` signs the
+new generation.
 
 ## Editor
 
@@ -528,8 +591,8 @@ Builds run at idle CPU and disk priority (`nix.daemonCPUSchedPolicy` / `daemonIO
 ## Binary caches
 
 Only `cache.nixos.org` is used. `accept-flake-config = false` in `modules/nixos/nix.nix`
-stops flakes from adding their own substituters, which is what keeps the bootvine flake's Cachix
-out. To add a cache on purpose, set `extra-substituters` and `extra-trusted-public-keys` there. To
+stops flakes from adding their own substituters, which is what keeps the Cachix caches of the
+bootvine and lanzaboote flakes out. To add a cache on purpose, set `extra-substituters` and `extra-trusted-public-keys` there. To
 use none at all, set `substituters = [ ]`; everything, including the kernel, is then compiled
 locally.
 

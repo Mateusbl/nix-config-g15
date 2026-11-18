@@ -35,6 +35,15 @@
       url = "git+https://codeberg.org/wvhulle/bootvine";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Secure Boot for systemd-boot (modules/nixos/boot.nix). Not in nixpkgs. Pinned to a release
+    # and compiled on this machine; its Cachix is never used (same reason as bootvine above).
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v1.2.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+      # Only used for lanzaboote's own development (git hooks); dropping it keeps the lock smaller.
+      inputs.pre-commit.follows = "";
+    };
   };
 
   outputs =
