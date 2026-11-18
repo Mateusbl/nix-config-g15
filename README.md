@@ -21,7 +21,7 @@ hosts/
     disko.nix                  partition layout (replaces hardware-configuration.nix)
     existing-install.nix       maps disko names onto the current partitions' UUIDs (temporary)
 modules/nixos/                 shared system modules, one topic per file
-  base.nix                     networking, locale, system packages
+  base.nix                     NetworkManager with iwd, locale, system packages
   boot.nix                     systemd-boot signed by lanzaboote (Secure Boot), latest kernel
   bootvine.nix                 live systemd boot screen (from bootvine's own flake)
   storage.nix                  btrfs auto-scrub
@@ -36,7 +36,7 @@ modules/nixos/                 shared system modules, one topic per file
   desktop.nix                  ly, Hyprland/UWSM, portals, udisks
   podman.nix                   rootless Podman with docker compat
   stylix.nix                   theme, fonts, opacity
-  users.nix                    user account, zsh
+  users.nix                    user account, zsh, sudo-rs
 home/                          home-manager modules, one topic per file
   shell.nix  git.nix  cli.nix  session.nix  hyprland.nix
   editor/neovim/               nixvim, one file per topic (see the Editor section)
@@ -528,6 +528,7 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 
 | Key | Does |
 | --- | --- |
+| `SUPER+1`…`SUPER+0` | workspaces 1–10; with `SHIFT`, move the window there |
 | `SUPER+Escape` | lock |
 | `SUPER+SHIFT+Escape` | power menu (fuzzel): lock, suspend, hibernate, reboot, poweroff, logout. Nothing happens unless you pick one |
 | `Print` | region screenshot to the clipboard |

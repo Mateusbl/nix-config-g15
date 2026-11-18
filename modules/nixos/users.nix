@@ -1,7 +1,12 @@
 { pkgs, username, ... }:
 
 {
-  security.sudo.execWheelOnly = true;
+  # sudo-rs: a memory-safe rewrite of sudo with the same command and config format. Only
+  # members of "wheel" may even run the binary.
+  security.sudo-rs = {
+    enable = true;
+    execWheelOnly = true;
+  };
 
   programs.zsh = {
     enable = true;
