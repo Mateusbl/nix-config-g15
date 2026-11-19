@@ -159,18 +159,20 @@
             repeating = true;
           })
 
-          # Workspaces 1-5
-          (bindCall "SUPER + 1" "hl.dsp.focus({ workspace = 1 })")
-          (bindCall "SUPER + 2" "hl.dsp.focus({ workspace = 2 })")
-          (bindCall "SUPER + 3" "hl.dsp.focus({ workspace = 3 })")
-          (bindCall "SUPER + 4" "hl.dsp.focus({ workspace = 4 })")
-          (bindCall "SUPER + 5" "hl.dsp.focus({ workspace = 5 })")
-          (bindCall "SUPER + SHIFT + 1" "hl.dsp.window.move({ workspace = 1 })")
-          (bindCall "SUPER + SHIFT + 2" "hl.dsp.window.move({ workspace = 2 })")
-          (bindCall "SUPER + SHIFT + 3" "hl.dsp.window.move({ workspace = 3 })")
-          (bindCall "SUPER + SHIFT + 4" "hl.dsp.window.move({ workspace = 4 })")
-          (bindCall "SUPER + SHIFT + 5" "hl.dsp.window.move({ workspace = 5 })")
-
+          # Workspaces 1-10 (key 0 is workspace 10): SUPER+n goes there, SUPER+SHIFT+n moves the window.
+        ]
+        ++ lib.concatMap (
+          n:
+          let
+            key = toString (lib.mod n 10);
+            ws = toString n;
+          in
+          [
+            (bindCall "SUPER + ${key}" "hl.dsp.focus({ workspace = ${ws} })")
+            (bindCall "SUPER + SHIFT + ${key}" "hl.dsp.window.move({ workspace = ${ws} })")
+          ]
+        ) (lib.range 1 10)
+        ++ [
           # Volume & brightness keys (work when locked, repeat when held). `osd` (desktop-scripts.nix)
           # changes the value exactly as before and then shows it in a small notification.
           (bindOpts "XF86AudioRaiseVolume" ''hl.dsp.exec_cmd("osd volume-up")'' {

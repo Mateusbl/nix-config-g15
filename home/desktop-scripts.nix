@@ -15,11 +15,12 @@ let
       uwsm
     ];
     text = ''
-      choice=$(printf '%s\n' lock suspend reboot poweroff logout |
+      choice=$(printf '%s\n' lock suspend hibernate reboot poweroff logout |
         fuzzel --dmenu --only-match --prompt "Power  ") || exit 0
       case "$choice" in
         lock) loginctl lock-session ;;
         suspend) systemctl suspend ;;
+        hibernate) systemctl hibernate ;;
         reboot) systemctl reboot ;;
         poweroff) systemctl poweroff ;;
         logout) uwsm stop ;;

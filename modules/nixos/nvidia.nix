@@ -18,7 +18,10 @@
     modesetting.enable = true;
     powerManagement.enable = true;
     powerManagement.finegrained = true; # requires offload.enable
-    open = false;
+    # NVIDIA's open-source kernel modules (the driver itself stays NVIDIA's). NVIDIA recommends
+    # them for Turing and newer; the RTX 3050 Mobile is Ampere. Fine-grained power management
+    # (the card switching off when idle) works with them too.
+    open = true;
     nvidiaSettings = true;
     prime = {
       offload.enable = true;

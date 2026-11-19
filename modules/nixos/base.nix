@@ -4,7 +4,13 @@
 {
   networking = {
     nftables.enable = true;
-    networkmanager.enable = true;
+    networkmanager = {
+      enable = true;
+      # iwd (Intel's Wi-Fi daemon) instead of wpa_supplicant: it connects and roams faster and
+      # is smaller. NetworkManager still owns the saved networks and their passwords, so the
+      # bar's panel and nmtui work as before. To go back, delete this line.
+      wifi.backend = "iwd";
+    };
     firewall.enable = true;
   };
 

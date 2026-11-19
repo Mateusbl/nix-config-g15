@@ -35,6 +35,15 @@
       url = "git+https://codeberg.org/wvhulle/bootvine";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Secure Boot for systemd-boot (modules/nixos/boot.nix). Not in nixpkgs. Pinned to a release
+    # and compiled on this machine; its Cachix is never used (same reason as bootvine above).
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v1.2.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+      # Only used for lanzaboote's own development (git hooks); dropping it keeps the lock smaller.
+      inputs.pre-commit.follows = "";
+    };
   };
 
   outputs =
@@ -52,7 +61,8 @@
       username = "mateus";
 
       # One entry per machine: attribute name = directory under hosts/.
-      # `hostname` must match what `nh os switch` / `nixos-rebuild --flake .#<name>` uses.
+      # The attribute name (g15) is what `--flake .#g15` and `nh os ... -H g15` select; `hostname`
+      # is only the machine's network name. nh picks the output by hostname unless -H is given.
       mkHost =
         { dir, hostname }:
         nixpkgs.lib.nixosSystem {

@@ -81,6 +81,10 @@
   # Launcher: fuzzel. Wayland-native, starts instantly, and remembers what you launch most.
   # Stylix sets its colours and font; icons come from the icon theme in modules/nixos/stylix.nix.
   # It is also the menu behind power-menu and clipboard-pick (home/desktop-scripts.nix).
+  # Stylix themes rofi by default even though it is not installed, which only produces an
+  # evaluation warning about a renamed rofi option.
+  stylix.targets.rofi.enable = false;
+
   programs.fuzzel = {
     enable = true;
     settings.main = {

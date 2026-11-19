@@ -11,6 +11,7 @@
     ./jujutsu.nix
     ./desktop-scripts.nix
     ./desktop-extras.nix
+    ./battery-warning.nix
   ];
 
   home.stateVersion = "26.05";
