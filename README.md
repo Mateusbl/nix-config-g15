@@ -45,6 +45,7 @@ home/                          home-manager modules, one topic per file
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
   desktop-scripts.nix          power menu, screenshots, clipboard picker; XDG user dirs
   desktop-extras.nix           optional: night light, colour picker, screen recorder
+  battery-warning.nix          notification at 20% and 10% battery
 docs/                          Neovim docs, devshell contract, jj and oo7 notes
 assets/nix-bg.png              wallpaper used by Stylix
 ```
@@ -252,7 +253,7 @@ Every step from a blank USB stick to the finished desktop:
     bootvine asks for the disk passphrase, then ly asks for user `mateus` and the password from
     step 9. Hyprland starts after login. `SUPER + Return` opens a terminal.
 
-12. **Finish.** Connect to Wi-Fi from the bar (click the icons on the right, or the tray icon). Then confirm that rebuilding works
+12. **Finish.** Connect to Wi-Fi from the bar (click the icons on the right). Then confirm that rebuilding works
     from the installed system and record the edits from steps 5 and 6:
 
     ```bash
@@ -310,7 +311,8 @@ Settings live in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itse
 Nothing is throttled to save battery: the panel stays at 120 Hz and Wi-Fi power saving is off (set explicitly; the kernel default has it on).
 
 - **Profile follows the charger:** `performance` on AC, `balanced` on battery, set when the charger is (un)plugged and at boot. The bar's settings panel has a button to change it by hand (it is reset at the next plug/unplug).
-- **Low-battery safety net (UPower):** low at 20%, critical at 10%, hibernate at 5%.
+- **Low-battery safety net (UPower):** low at 20%, critical at 10%, hibernate at 5%. A notification
+  warns at 20% and again (critical) at 10% (`home/battery-warning.nix`).
 - Idle behaviour: dim after 5 min, lock after 10, screen off after 11, suspend-then-hibernate after 30 (and on lid close after 2 h of sleep).
 
 ## Out of memory
