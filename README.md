@@ -500,6 +500,35 @@ message such as `jdtls not found: no devshell here`.
 - `:DevshellStatus` (`<leader>cD`) shows the `.envrc` state and every expected tool with its path and version.
 - `:DevshellReload` reloads the environments after you change a devshell.
 
+**Cheat sheet.** Leader is **Space**: press it and wait, and which-key shows what comes next.
+The most used keys (the full list, with the VS Code equivalents, is in `docs/neovim-cheatsheet.md`):
+
+| What | Keys |
+| --- | --- |
+| Find file | `<C-p>`, `<leader><space>`, `<leader>ff` |
+| Recent files | `<leader>fr` |
+| Search text in the project | `<leader>/`, `<leader>sg` |
+| Search and replace in the project | `<leader>sr` |
+| Open buffers / previous / next | `<leader>,` / `<S-h>` / `<S-l>` |
+| File tree / edit folder as text | `<leader>e` / `-` |
+| Go to definition / references | `gd` / `gr` |
+| Hover docs | `K` |
+| Rename symbol | `<F2>`, `<leader>cR` |
+| Code action (quick fix) | `<C-.>`, `<leader>ca` |
+| Format file (also on save) | `<leader>cf` |
+| Problems list / next problem | `<leader>xx` / `]d` |
+| Comment line | `gcc` |
+| Move line down / up | `<A-j>` / `<A-k>` |
+| Save | `<C-s>` |
+| Debug: start / breakpoint / step over / into | `<F5>` / `<F9>` / `<F10>` / `<F11>` |
+| Test at cursor / tests in file | `<leader>tr` / `<leader>tt` |
+| Run a task (tasks.json, npm, ...) | `<leader>or` |
+| Git (lazygit) / blame line | `<leader>gg` / `<leader>gb` |
+| Terminal | `<C-/>`, `<leader>ft` |
+| Project tools found (devshell status) | `<leader>cD` |
+| Restore last session for this folder | `<leader>qs` |
+| Undo history | `<leader>uu` |
+
 **Docs:**
 - `docs/neovim-cheatsheet.md`: VS Code action → key
 - `docs/neovim-decisions.md`: why things are the way they are, and open questions
