@@ -12,7 +12,7 @@
   # blueman-manager (launcher, or right-click the panel's Bluetooth button) pairs new devices.
   hardware.bluetooth = {
     enable = true;
-    powerOnBoot = false;
+    powerOnBoot = true;
   };
   services.blueman.enable = true;
 }
