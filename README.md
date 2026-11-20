@@ -442,14 +442,17 @@ Do this after the first switch to this config and one reboot.
    Platform Key (PK); that is what Setup Mode means. Menu names differ between BIOS versions. Save
    and boot NixOS. `sudo sbctl status` now shows Setup Mode as enabled.
 
-3. **Enroll your keys, together with Microsoft's:**
+3. **Enroll your keys, together with Microsoft's and Dell's:**
 
    ```bash
-   sudo sbctl enroll-keys --microsoft
+   sudo sbctl enroll-keys --microsoft --firmware-builtin
    ```
 
-   Keep `--microsoft`. The NVIDIA card's own firmware and Dell's updates are signed by Microsoft;
-   without those keys the firmware can refuse them and the laptop may not show a picture at all.
+   Your key becomes the Platform Key, so only you decide which keys are trusted. Keep
+   `--microsoft`: the NVIDIA card's own firmware is signed by Microsoft, and without that key the
+   firmware can refuse it and the laptop may not show a picture at all. `--firmware-builtin` also
+   keeps the keys the firmware shipped with (Dell's), so what Dell signed for this laptop keeps
+   working. Afterwards `sudo sbctl status` lists `microsoft` and `builtin-db`/`builtin-KEK`.
 
 4. **Turn Secure Boot on:** reboot, `F2`, enable Secure Boot, save.
 
