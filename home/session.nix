@@ -16,7 +16,7 @@
         font_size = 90;
         font_family = "FiraCode Nerd Font Mono";
         color = "rgb(c9d8f7)";
-        position = "0, 120";
+        position = "0, 220";
         halign = "center";
         valign = "center";
       }
