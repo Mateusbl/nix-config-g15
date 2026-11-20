@@ -35,6 +35,7 @@ modules/nixos/                 shared system modules, one topic per file
   audio-bluetooth.nix          PipeWire, Bluetooth, blueman
   desktop.nix                  ly, Hyprland/UWSM, portals, udisks
   podman.nix                   rootless Podman with docker compat
+  gaming.nix                   Steam, Proton-GE, protontricks
   stylix.nix                   theme, fonts, opacity
   users.nix                    user account, zsh, sudo-rs
 home/                          home-manager modules, one topic per file
@@ -622,6 +623,18 @@ sudo cp /.snapshots/home.<date>/<user>/path/to/file ~/path/to/file
 
 These snapshots are on the same disk, so they are **not** a backup. Off-disk backups are
 made by hand, outside this config.
+
+## Gaming
+
+`modules/nixos/gaming.nix` turns on Steam (the one FHS-style exception allowed in `CLAUDE.md`).
+Start it from the launcher (`SUPER+D`).
+
+- **Use the NVIDIA card:** games run on the Intel GPU unless told otherwise. For each game, set
+  Properties → Launch Options to `nvidia-offload %command%`.
+- **Proton-GE** is installed next to Valve's Proton. Pick it per game under Properties →
+  Compatibility when a game fails or its videos do not play; Valve's Proton stays the default.
+- **protontricks** installs Windows components (fonts, Visual C++ runtimes, ...) into a single
+  game's prefix: `protontricks --gui`.
 
 ## Speed
 
