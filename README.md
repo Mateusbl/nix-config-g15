@@ -432,8 +432,10 @@ Do this after the first switch to this config and one reboot.
    sudo sbctl verify
    ```
 
-   `status` must show your keys as installed. `verify` lists the boot files: the ones in use must be
-   signed. If some are not, run `nrs` again before going on.
+   `status` must show your keys as installed. `verify` lists the boot files: everything must be
+   signed except the files under `EFI/nixos/` whose names start with `kernel-`. Those are expected
+   to show as not signed: the signed generation file in `EFI/Linux/` holds a hash of its kernel and
+   checks it before loading it. If anything else is not signed, run `nrs` again before going on.
 
 2. **Put the firmware in Setup Mode.** Reboot, press `F2` at the Dell logo, and open the Secure
    Boot settings. Turn on custom key management ("Expert Key Management" on Dell) and delete the
