@@ -7,7 +7,51 @@
   services.hyprpolkitagent.enable = true; # privilege prompts for GUI apps
   services.hyprpaper.enable = true; # draws the Stylix wallpaper
 
-  programs.hyprlock.enable = true;
+  programs.hyprlock = {
+    enable = true;
+    settings.label = [
+      # clock
+      {
+        text = "$TIME12";
+        font_size = 90;
+        font_family = "FiraCode Nerd Font Mono";
+        color = "rgb(c9d8f7)";
+        position = "0, 120";
+        halign = "center";
+        valign = "center";
+      }
+      #Date
+      {
+        text = ''cmd[update:6000] date +"%A, %d %B"'';
+        font_size = 22;
+        font_family = "DejaVu Sans";
+        color = "rgb(7d93c6)";
+        position = "0, 120";
+        halign = "center";
+        valign = "center";
+      }
+      #Greeting
+      {
+        text = "Hi, $USER";
+        font_size = 18;
+        font_family = "DejaVu Sans";
+        color = "rgb(6f9cf5)";
+        position = "0, -110";
+        halign = "center";
+        valign = "center";
+      }
+      #Battery
+      {
+        text = ''cmd[update:30000] echo "$(cat /sys/class/power_supply/BAT0/capacity)%"'';
+        font_size = 14;
+        font_family = "DejaVu Sans";
+        color = "rgb(c9d8f7)";
+        position = "-20, -20";
+        halign = "right";
+        valign = "Top";
+      }
+    ];
+  };
 
   services.hypridle = {
     enable = true;
