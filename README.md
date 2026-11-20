@@ -454,6 +454,14 @@ Do this after the first switch to this config and one reboot.
    keeps the keys the firmware shipped with (Dell's), so what Dell signed for this laptop keeps
    working. Afterwards `sudo sbctl status` lists `microsoft` and `builtin-db`/`builtin-KEK`.
 
+   If it stops with `File is immutable: /sys/firmware/efi/efivars/…`, the kernel is protecting
+   those variables from accidental changes. Remove that protection for the files it names (the
+   command fetches `chattr`, which is not installed), then run `enroll-keys` again:
+
+   ```bash
+   sudo "$(nix build --no-link --print-out-paths nixpkgs#e2fsprogs.bin)/bin/chattr" -i /sys/firmware/efi/efivars/KEK-8be4df61-93ca-11d2-aa0d-00e098032b8c /sys/firmware/efi/efivars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f
+   ```
+
 4. **Turn Secure Boot on:** reboot, `F2`, enable Secure Boot, save.
 
 5. Boot NixOS and check that `sudo sbctl status` shows Secure Boot as enabled.
