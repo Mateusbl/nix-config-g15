@@ -200,7 +200,7 @@
 
   programs.firefox.enable = true;
   stylix.targets.firefox.profileNames = [ "default" ];
-
+  stylix.targets.wayprompt.enable = false;
   home.packages = with pkgs; [
     mousepad
     brightnessctl
