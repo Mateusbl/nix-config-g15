@@ -14,7 +14,6 @@
     (modulesPath + "/installer/scan/not-detected.nix")
     inputs.disko.nixosModules.disko
     ./disko.nix
-    ./existing-install.nix # remove after a disko reinstall, see the file
     ../../modules/nixos
   ];
 

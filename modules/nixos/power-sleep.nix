@@ -39,7 +39,7 @@ in
     SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}="power-profile-ac.service"
   '';
   systemd.services.power-profile-battery = setProfile "balanced";
-  systemd.services.power-profile-ac = setProfile "performance";
+  systemd.services.power-profile-ac = setProfile "balanced";
 
   # A safety net, not a power saver: UPower watches the battery and acts before it runs flat:
   # low at 20%, critical at 10%, and at 5% the laptop hibernates (the encrypted swap partition doubles as the hibernation target).

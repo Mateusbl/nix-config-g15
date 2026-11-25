@@ -13,7 +13,6 @@
     ./audio-bluetooth.nix
     ./desktop.nix
     ./podman.nix
-    ./gaming.nix
     ./stylix.nix
     ./users.nix
     ./secrets.nix
