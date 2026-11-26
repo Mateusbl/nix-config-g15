@@ -12,6 +12,8 @@
     ./desktop-scripts.nix
     ./desktop-extras.nix
     ./battery-warning.nix
+    ./window-switcher.nix
+    ./ghostty-cursor.nix
   ];
 
   home.stateVersion = "26.05";

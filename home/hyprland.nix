@@ -49,6 +49,9 @@
       config = {
         input = {
           kb_layout = "us";
+          # US keys with accents on AltGr (right Alt): AltGr+, = ç, AltGr+' then a = á,
+          # AltGr+~ then a = ã. Plain ' and " still type at once, which matters for code.
+          kb_variant = "altgr-intl";
           follow_mouse = 1;
           touchpad.natural_scroll = true;
         };
@@ -64,6 +67,16 @@
           rounding = 6;
         };
       };
+
+      # hl.gesture({ fingers, direction, action }): swipe three fingers left/right on the
+      # touchpad to change workspace.
+      gesture = [
+        {
+          fingers = 3;
+          direction = "horizontal";
+          action = "workspace";
+        }
+      ];
 
       # hl.window_rule({ name, match, <effects> })
       # Small utility windows float in the middle of the screen instead of being tiled like an
@@ -83,6 +96,19 @@
           float = true;
           center = true;
           size = "700 500";
+        }
+        {
+          name = "float-screenshot-editor";
+          match.class = "^com\\.gabm\\.satty$";
+          float = true;
+          center = true;
+        }
+        {
+          name = "float-display-settings";
+          match.class = "^network\\.cycles\\.wdisplays$";
+          float = true;
+          center = true;
+          size = "1000 700";
         }
         {
           name = "float-file-dialogs";
@@ -128,6 +154,16 @@
 
           # Clipboard history
           (bindCall "SUPER + SHIFT + V" ''hl.dsp.exec_cmd("clipboard-pick")'')
+
+          # Screenshot of a region, opened in an editor (arrows, text, blur) before saving
+          (bindCall "SUPER + Print" ''hl.dsp.exec_cmd("screenshot edit")'')
+
+          # Emoji picker: types the chosen emoji and also copies it
+          (bindCall "SUPER + period" ''hl.dsp.exec_cmd("emoji-pick")'')
+
+          # Notifications: bring back the last one that disappeared / dismiss all on screen
+          (bindCall "SUPER + N" ''hl.dsp.exec_cmd("makoctl restore")'')
+          (bindCall "SUPER + SHIFT + N" ''hl.dsp.exec_cmd("makoctl dismiss --all")'')
 
           # Focus
           (bindCall "SUPER + H" ''hl.dsp.focus({ direction = "left" })'')

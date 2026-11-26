@@ -43,9 +43,11 @@ home/                          home-manager modules, one topic per file
   yazi.nix                     Yazi file manager
   identity.nix                 name + email, shared by git.nix and jujutsu.nix
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
-  desktop-scripts.nix          power menu, screenshots, clipboard picker; XDG user dirs
+  desktop-scripts.nix          power menu, screenshots (+ editor), clipboard and emoji pickers, wdisplays
   desktop-extras.nix           optional: night light, colour picker, screen recorder
   battery-warning.nix          notification at 20% and 10% battery
+  window-switcher.nix          alt-tab window switcher (hyprshell)
+  ghostty-cursor.nix           animated cursor trail in Ghostty (custom shader)
 docs/                          Neovim docs, devshell contract, jj and oo7 notes
 assets/nix-bg.png              wallpaper used by Stylix
 ```
@@ -572,19 +574,27 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 
 | Key | Does |
 | --- | --- |
+| `ALT+Tab` / `ALT+SHIFT+Tab` | window switcher with previews, most recent first; release `ALT` to switch, `q` closes the selected window |
 | `SUPER+1`…`SUPER+0` | workspaces 1–10; with `SHIFT`, move the window there |
+| three-finger swipe left/right | previous / next workspace |
 | `SUPER+Escape` | lock |
 | `SUPER+SHIFT+Escape` | power menu (fuzzel): lock, suspend, hibernate, reboot, poweroff, logout. Nothing happens unless you pick one |
 | `Print` | region screenshot to the clipboard |
 | `Shift+Print` / `Ctrl+Print` | region / full screen to `~/Pictures/Screenshots`, with a notification |
+| `SUPER+Print` | region opened in satty to draw arrows, text or blur; `Ctrl+S` saves, `Ctrl+C` copies |
 | `SUPER+SHIFT+V` | clipboard history (cliphist, started with the session) |
+| `SUPER+.` | emoji picker (fuzzel): types the emoji and copies it |
+| `SUPER+N` / `SUPER+SHIFT+N` | bring back the last notification / dismiss all |
 | `XF86AudioPlay/Next/Prev` | media control via playerctl, sent to the last used player (playerctld) |
 | Volume / brightness / mute keys | change the value and show it in a small notification with a bar (`osd`, drawn by mako in the theme colours) |
 
 - The bar is ashell (`home/session.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pavucontrol; right-clicking Bluetooth opens blueman-manager.
 - Wi-Fi and Bluetooth are handled in that panel; there are no separate tray applets. Bluetooth is off after boot until you turn it on there. For VPNs or editing a connection use `nmtui` in a terminal.
-- The launcher is fuzzel (`SUPER+D`). The power menu and the clipboard picker use it too.
-- Small utility windows float centred instead of tiling: the mixer, Bluetooth manager and file dialogs (`window_rule` in `home/hyprland.nix`).
+- The launcher is fuzzel (`SUPER+D`). The power menu, the clipboard picker and the emoji picker use it too.
+- Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
+- Ghostty draws a short fading streak when the cursor jumps (not while typing); see `home/ghostty-cursor.nix`.
+- `wdisplays` arranges monitors visually. It does not save anything: copy the resulting positions into the monitor list in `home/hyprland.nix`.
+- Small utility windows float centred instead of tiling: the mixer, Bluetooth manager, screenshot editor, wdisplays and file dialogs (`window_rule` in `home/hyprland.nix`).
 - Optional, off by default, in `home/desktop-extras.nix`:
   - `my.desktop.nightLight.enable`: hyprsunset, warmer colours from 20:00.
   - `my.desktop.colorPicker.enable`: hyprpicker on `SUPER+SHIFT+C`.
