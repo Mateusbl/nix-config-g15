@@ -3,7 +3,6 @@
 
 {
   programs.bat.enable = true;
-  programs.jq.enable = true;
 
   programs.btop = {
     enable = true;
@@ -26,6 +25,7 @@
   };
 
   home.packages = with pkgs; [
+    jaq # jq-compatible JSON tool, faster and written in Rust (`jaq` instead of `jq`)
     dust
     duf
     sd

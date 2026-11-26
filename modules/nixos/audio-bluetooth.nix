@@ -8,11 +8,10 @@
     pulse.enable = true;
   };
 
-  # Bluetooth, on from boot; the bar's settings panel turns it off and on.
-  # blueman-manager (launcher, or right-click the panel's Bluetooth button) pairs new devices.
+  # Bluetooth, on from boot; the bar's settings panel turns it off and on. New devices are paired
+  # with overskride (home/session.nix; launcher, or right-click the panel's Bluetooth button).
   hardware.bluetooth = {
     enable = true;
     powerOnBoot = true;
   };
-  services.blueman.enable = true;
 }

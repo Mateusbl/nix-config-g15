@@ -4,13 +4,21 @@
 }:
 
 {
-  # Hyprland (Lua config; binaries come from the system module via UWSM)
+  # Hyprland (Lua config; the binary comes from the system module, modules/nixos/desktop.nix)
   wayland.windowManager.hyprland = {
     enable = true;
     configType = "lua";
     package = null;
     portalPackage = null;
-    systemd.enable = false; # conflicts with UWSM
+    # Session services without UWSM: when Hyprland starts, home-manager imports the environment
+    # into systemd and starts hyprland-session.target, which pulls in graphical-session.target and
+    # with it ashell, hypridle, hyprpaper, cliphist, ...; when Hyprland exits, it stops them again.
+    # "--all" imports the whole environment (PATH included), as UWSM did, so commands the
+    # services run (brightnessctl, hyprctl, ...) are found.
+    systemd = {
+      enable = true;
+      variables = [ "--all" ];
+    };
 
     settings = {
       # hl.env("LIBVA_DRIVER_NAME", "iHD")
@@ -80,19 +88,19 @@
 
       # hl.window_rule({ name, match, <effects> })
       # Small utility windows float in the middle of the screen instead of being tiled like an
-      # editor or a browser. `class` is a regular expression on the window's app id. NixOS wraps
-      # some programs, which changes the id (".blueman-manager-wrapped"), hence the loose patterns.
+      # editor or a browser. `class` is a regular expression on the window's app id (the name in
+      # the app's .desktop file; `hyprctl clients` shows it for open windows).
       window_rule = [
         {
           name = "float-mixer";
-          match.class = "^(org\\.pulseaudio\\.pavucontrol|pavucontrol)$";
+          match.class = "^com\\.saivert\\.pwvucontrol$";
           float = true;
           center = true;
           size = "900 600";
         }
         {
           name = "float-bluetooth";
-          match.class = "^\\.?blueman-.*$";
+          match.class = "^io\\.github\\.kaii_lb\\.Overskride$";
           float = true;
           center = true;
           size = "700 500";
@@ -140,7 +148,7 @@
           # Launchers & session
           (bindCall "SUPER + Return" ''hl.dsp.exec_cmd("ghostty")'')
           (bindCall "SUPER + Q" "hl.dsp.window.close()")
-          (bindCall "SUPER + M" ''hl.dsp.exec_cmd("uwsm stop")'')
+          (bindCall "SUPER + M" "hl.dsp.exit()") # log out
           (bindCall "SUPER + E" ''hl.dsp.exec_cmd("ghostty -e yazi")'')
           (bindCall "SUPER + SHIFT + E" ''hl.dsp.exec_cmd("ghostty -e yazi")'') # terminal file manager
           (bindCall "SUPER + D" ''hl.dsp.exec_cmd("fuzzel")'')
@@ -160,10 +168,6 @@
 
           # Emoji picker: types the chosen emoji and also copies it
           (bindCall "SUPER + period" ''hl.dsp.exec_cmd("emoji-pick")'')
-
-          # Notifications: bring back the last one that disappeared / dismiss all on screen
-          (bindCall "SUPER + N" ''hl.dsp.exec_cmd("makoctl restore")'')
-          (bindCall "SUPER + SHIFT + N" ''hl.dsp.exec_cmd("makoctl dismiss --all")'')
 
           # Focus
           (bindCall "SUPER + H" ''hl.dsp.focus({ direction = "left" })'')
@@ -209,21 +213,21 @@
           ]
         ) (lib.range 1 10)
         ++ [
-          # Volume & brightness keys (work when locked, repeat when held). `osd` (desktop-scripts.nix)
-          # changes the value exactly as before and then shows it in a small notification.
-          (bindOpts "XF86AudioRaiseVolume" ''hl.dsp.exec_cmd("osd volume-up")'' {
+          # Volume & brightness keys (work when locked, repeat when held). ashell changes the value
+          # and shows it in its on-screen display (osd settings in home/session.nix).
+          (bindOpts "XF86AudioRaiseVolume" ''hl.dsp.exec_cmd("ashell msg volume-up")'' {
             locked = true;
             repeating = true;
           })
-          (bindOpts "XF86AudioLowerVolume" ''hl.dsp.exec_cmd("osd volume-down")'' {
+          (bindOpts "XF86AudioLowerVolume" ''hl.dsp.exec_cmd("ashell msg volume-down")'' {
             locked = true;
             repeating = true;
           })
-          (bindOpts "XF86MonBrightnessUp" ''hl.dsp.exec_cmd("osd brightness-up")'' {
+          (bindOpts "XF86MonBrightnessUp" ''hl.dsp.exec_cmd("ashell msg brightness-up")'' {
             locked = true;
             repeating = true;
           })
-          (bindOpts "XF86MonBrightnessDown" ''hl.dsp.exec_cmd("osd brightness-down")'' {
+          (bindOpts "XF86MonBrightnessDown" ''hl.dsp.exec_cmd("ashell msg brightness-down")'' {
             locked = true;
             repeating = true;
           })
@@ -235,10 +239,10 @@
           (bindOpts "XF86AudioPrev" ''hl.dsp.exec_cmd("playerctl previous")'' { locked = true; })
 
           # Mute keys
-          (bindOpts "XF86AudioMute" ''hl.dsp.exec_cmd("osd volume-mute")'' {
+          (bindOpts "XF86AudioMute" ''hl.dsp.exec_cmd("ashell msg volume-toggle-mute")'' {
             locked = true;
           })
-          (bindOpts "XF86AudioMicMute" ''hl.dsp.exec_cmd("osd mic-mute")'' {
+          (bindOpts "XF86AudioMicMute" ''hl.dsp.exec_cmd("ashell msg microphone-toggle-mute")'' {
             locked = true;
           })
 

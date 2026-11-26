@@ -2,8 +2,9 @@
 { lib, pkgs, ... }:
 
 {
-  # Session services (UWSM-compatible, Stylix themes them)
-  services.mako.enable = true; # notifications
+  # Session services: systemd user services started with the graphical session
+  # (hyprland-session.target, see home/hyprland.nix). Stylix themes them. Notifications and the
+  # volume/brightness overlay are ashell's (below), so there is no separate notification daemon.
   services.hyprpolkitagent.enable = true; # privilege prompts for GUI apps
   services.hyprpaper.enable = true; # draws the Stylix wallpaper
 
@@ -158,9 +159,26 @@
           [
             "Tempo"
             "Privacy" # shows when the microphone, camera or screen sharing is in use
+            "Notifications" # bell: click for the list of notifications, right-click for do not disturb
             "Settings"
           ]
         ];
+      };
+
+      # ashell is also the notification daemon: popups in the top-right corner, and the bell in
+      # the bar keeps the history (in memory, until logout).
+      notifications = {
+        toast_position = "TopRight";
+        history_limit = 100;
+      };
+
+      # On-screen display for the volume, microphone and brightness keys (home/hyprland.nix sends
+      # `ashell msg volume-up` and friends): a small bar at the bottom centre.
+      osd = {
+        enabled = true;
+        timeout = 1500;
+        show_volume_percentage = true;
+        show_brightness_percentage = true;
       };
 
       # Tempo is the clock; clicking it opens a calendar. No weather: that would ask a web
@@ -175,40 +193,47 @@
 
       settings = {
         battery_format = "IconAndPercentage";
-        # Same commands as power-menu, so both behave alike under UWSM.
+        volume_step = 5; # per press of a volume key
+        max_volume = 150; # allow up to 150%, as before
+        # Same commands as power-menu, so both behave alike.
         lock_cmd = "loginctl lock-session";
         suspend_cmd = "systemctl suspend";
         hibernate_cmd = "systemctl hibernate";
         reboot_cmd = "systemctl reboot";
         shutdown_cmd = "systemctl poweroff";
-        logout_cmd = "uwsm stop";
+        logout_cmd = "hyprctl dispatch 'hl.dsp.exit()'";
         # Right-click the speaker / Bluetooth button for the full tools.
-        audio_sinks_more_cmd = "pavucontrol -t 3";
-        audio_sources_more_cmd = "pavucontrol -t 4";
-        bluetooth_more_cmd = "blueman-manager";
+        audio_sinks_more_cmd = "pwvucontrol";
+        audio_sources_more_cmd = "pwvucontrol";
+        bluetooth_more_cmd = "overskride";
       };
     };
   };
 
   # Clipboard history: a wl-paste watcher (systemd user service, started with the graphical
-  # session like mako/hyprpaper/ashell). SUPER+SHIFT+V picks from it (clipboard-pick).
+  # session like hyprpaper/ashell). SUPER+SHIFT+V picks from it (clipboard-pick).
   services.cliphist.enable = true;
 
-  # Media keys: playerctl talks to any MPRIS player (mpv, Firefox, Spotify, ...).
+  # Media keys: playerctl talks to any MPRIS player (mpv, LibreWolf, Spotify, ...).
   # playerctld remembers the player you used last, so the keys go to that one.
   services.playerctld.enable = true;
 
-  programs.firefox.enable = true;
-  stylix.targets.firefox.profileNames = [ "default" ];
+  # Browser: LibreWolf, Firefox with privacy and security settings on by default (tracking
+  # protection, no telemetry, uBlock Origin included). By default it deletes cookies and history
+  # when it closes, so you are logged out of sites after a restart; change that in its Settings →
+  # Privacy & Security if you prefer. Stylix themes it like it did Firefox.
+  programs.librewolf.enable = true;
+  stylix.targets.librewolf.profileNames = [ "default" ];
   stylix.targets.wayprompt.enable = false;
   home.packages = with pkgs; [
     mousepad
     brightnessctl
     playerctl
-    # Volume mixer. pavucontrol rather than wiremix: it is mature, is opened by right-clicking the
-    # speaker in the bar's settings panel, and is a GTK app that Stylix themes. wiremix (a TUI) works too,
-    # but mixing per-app volumes is quicker with a mouse.
-    pavucontrol
+    # Volume mixer: pwvucontrol, made for PipeWire (GTK4). Opened by right-clicking the speaker in
+    # the bar's settings panel.
+    pwvucontrol
+    # Bluetooth pairing and device settings (GTK4). Right-click the panel's Bluetooth button.
+    overskride
     wl-clipboard
     grim
     slurp

@@ -5,8 +5,8 @@
 {
   # nixpkgs' oo7 module installs oo7-cli, the oo7-daemon user service (started at login),
   # its D-Bus activation file, the Secret portal (oo7-portal), and pam_oo7 on the `login`
-  # PAM service. ly's own PAM service includes `login` for auth and session, so the keyring
-  # is unlocked with the ly login password.
+  # PAM service. The login screen's PAM service (greetd) includes `login` for auth and session,
+  # so the keyring is unlocked with the login password.
   services.oo7.enable = true;
 
   # The D-Bus activation file asks systemd for "dbus-org.freedesktop.secrets.service", but

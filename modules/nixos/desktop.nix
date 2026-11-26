@@ -1,35 +1,34 @@
-# Display manager, Hyprland (UWSM), portals.
-{ config, pkgs, ... }:
-
-let
-  # ly takes 24-bit colours as 0xSSRRGGBB (SS = style bits: 01 bold). The values come from the
-  # Stylix palette, so the login screen matches the desktop (and its "matrix" rain is blue, not
-  # the default green).
-  palette = config.lib.stylix.colors;
-  plain = color: "0x00${color}";
-  bold = color: "0x01${color}";
-in
+# Login screen, Hyprland, portals.
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
-  services.displayManager.ly = {
+  # Login screen: greetd, a small login daemon that runs the greeter as its own unprivileged user,
+  # with tuigreet as the greeter (a text login prompt on the console). It lists the installed
+  # sessions (Hyprland) and remembers the last user and session. Its colours are the console's
+  # 16 colours, which Stylix already sets to the palette, so names like "blue" are base0D.
+  services.greetd = {
     enable = true;
-    settings = {
-      animation = "matrix";
-      clock = "%c";
-      bigclock = "en"; # none | en | fa (it is a language, not on/off)
-
-      bg = plain palette.base00;
-      fg = plain palette.base05;
-      border_fg = plain palette.base0D;
-      error_fg = bold palette.base08;
-      cmatrix_fg = plain palette.base0D;
-      cmatrix_head_col = bold palette.base0C;
-    };
+    useTextGreeter = true; # keeps boot messages from drawing over the prompt
+    settings.default_session.command = lib.concatStringsSep " " [
+      "${pkgs.tuigreet}/bin/tuigreet"
+      "--time"
+      "--remember"
+      "--remember-session"
+      "--asterisks"
+      "--sessions ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions"
+      "--theme 'border=blue;text=white;prompt=cyan;time=blue;action=blue;button=cyan;container=black;input=white'"
+    ];
   };
 
   programs.hyprland = {
     enable = true;
-    withUWSM = true;
+    # No UWSM: home-manager starts and stops the session services itself (home/hyprland.nix).
+    withUWSM = false;
     xwayland.enable = true;
   };
   security.pam.services.hyprlock = { };

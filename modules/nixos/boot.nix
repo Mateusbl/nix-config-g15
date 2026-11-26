@@ -23,6 +23,9 @@
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  # Empty /tmp at every boot, so nothing left there by one session survives into the next.
+  boot.tmp.cleanOnBoot = true;
+
   boot.loader.systemd-boot = {
     # lanzaboote installs systemd-boot itself (signed); NixOS' own installer must stay off.
     enable = lib.mkForce false;

@@ -2,8 +2,8 @@
 
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
-- **Desktop:** Hyprland (Lua config) started through UWSM, with the `ly` display manager, ashell (bar), fuzzel (launcher), hyprshell (alt-tab), Mako, hyprlock/hypridle and Ghostty
-- **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the ly login screen uses the same colours
+- **Desktop:** Hyprland (Lua config), greetd with tuigreet (login), ashell (bar, notifications, volume/brightness overlay), fuzzel (launcher), hyprshell (alt-tab), hyprlock/hypridle, Ghostty and LibreWolf
+- **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
 - **Editor:** Neovim (nixvim) set up for Java/Spring, Python (Django, FastAPI) and TypeScript/React/Angular. Project toolchains come from each project's devenv
@@ -31,8 +31,8 @@ modules/nixos/                 shared system modules, one topic per file
   power-sleep.nix              lid/power key, suspend-then-hibernate, power profile
   oom.nix                      earlyoom: kills a runaway process before the machine freezes
   performance.nix              sched_ext scheduler, zram memory tuning, BBR networking
-  audio-bluetooth.nix          PipeWire, Bluetooth, blueman
-  desktop.nix                  ly, Hyprland/UWSM, portals, udisks
+  audio-bluetooth.nix          PipeWire, Bluetooth
+  desktop.nix                  greetd + tuigreet (login), Hyprland, portals, udisks
   podman.nix                   rootless Podman with docker compat
   stylix.nix                   theme, fonts, opacity
   users.nix                    user account, zsh, sudo-rs
@@ -104,7 +104,7 @@ gives them; a machine partitioned some other way needs path B.
    `nh` shows which packages change and asks for your password itself. Without `nh`, the same
    step is `sudo nixos-rebuild test --flake .#g15`.
 
-4. Log out and back in through ly, so the new session services start. Look around: the bar, the
+4. Log out and back in at the login screen, so the new session services start. Look around: the bar, the
    launcher (`SUPER+D`), a terminal, sound, Wi-Fi. Two quick checks for things you cannot see:
 
    ```bash
@@ -245,7 +245,7 @@ Every step from a blank USB stick to the finished desktop:
     reboot
     ```
 
-    bootvine asks for the disk passphrase, then ly asks for user `mateus` and the password from
+    bootvine asks for the disk passphrase, then the login screen (tuigreet) asks for user `mateus` and the password from
     step 8. Hyprland starts after login. `SUPER + Return` opens a terminal.
 
 11. **Finish.** Connect to Wi-Fi from the bar (click the icons on the right). Then confirm that
@@ -316,7 +316,7 @@ Nothing is throttled to save battery: the panel stays at 120 Hz and Wi-Fi power 
 
 `modules/nixos/oom.nix` runs earlyoom. When less than 10% of RAM is available and less than 20% of swap
 is free, it ends the biggest process (SIGTERM, then SIGKILL at half those values) instead of letting the
-desktop freeze. It avoids the session (Hyprland, ashell, PipeWire, oo7, ...), prefers Firefox tab
+desktop freeze. It avoids the session (Hyprland, ashell, PipeWire, oo7, ...), prefers browser tab
 processes, and sends a desktop notification naming what it killed.
 
 ## Disks (disko)
@@ -564,12 +564,15 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 | `SUPER+Print` | region opened in satty to draw arrows, text or blur; `Ctrl+S` saves, `Ctrl+C` copies |
 | `SUPER+SHIFT+V` | clipboard history (cliphist, started with the session) |
 | `SUPER+.` | emoji picker (fuzzel): types the emoji and copies it |
-| `SUPER+N` / `SUPER+SHIFT+N` | bring back the last notification / dismiss all |
 | `XF86AudioPlay/Next/Prev` | media control via playerctl, sent to the last used player (playerctld) |
-| Volume / brightness / mute keys | change the value and show it in a small notification with a bar (`osd`, drawn by mako in the theme colours) |
+| Volume / brightness / mute keys | change the value and show it in ashell's on-screen display (5% steps, volume up to 150%) |
+| `SUPER+M` | log out |
 
-- The bar is ashell (`home/session.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pavucontrol; right-clicking Bluetooth opens blueman-manager.
+- The bar is ashell (`home/session.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pwvucontrol (volume mixer); right-clicking Bluetooth opens overskride (pairing).
+- Notifications are ashell's too: popups in the top-right corner, and the bell in the bar keeps the list (click it to see them, right-click for do not disturb). They are kept in memory until you log out.
 - Wi-Fi and Bluetooth are handled in that panel; there are no separate tray applets. Bluetooth is on from boot; turn it off there when you don't need it. For VPNs or editing a connection use `nmtui` in a terminal.
+- Login: greetd runs tuigreet, a text login prompt in the palette colours, which remembers the last user and session. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
+- Browser: LibreWolf (Firefox with privacy and security settings on by default, uBlock Origin included). It deletes cookies and history when it closes; change that in its Settings → Privacy & Security if you want to stay logged in.
 - The lock screen (hyprlock, `SUPER+Escape`) shows the time, the date, a greeting and the battery level over the wallpaper, in the palette colours (`home/session.nix`).
 - The launcher is fuzzel (`SUPER+D`). The power menu, the clipboard picker and the emoji picker use it too.
 - Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
@@ -584,7 +587,7 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 ## Secrets: oo7
 
 `modules/nixos/secrets.nix` makes [oo7](https://github.com/linux-credentials/oo7) the only Secret
-Service. The keyring unlocks with your ly login password. The CLI is `oo7-cli` (store / lookup /
+Service. The keyring unlocks with your login password (greetd's PAM service includes `login`, which has pam_oo7). The CLI is `oo7-cli` (store / lookup /
 search / delete). gnome-keyring is forced off. Verification steps, gaps and the fallback are in
 `docs/oo7-notes.md`.
 
@@ -620,14 +623,25 @@ The base is current: `nixos-unstable`, the newest kernel (`linuxPackages_latest`
 systemd initrd and zstd-compressed zram. Update everything to the newest revisions with
 `nix flake update`. `modules/nixos/performance.nix` adds:
 
-- **sched_ext scheduler:** `scx_bpfland` through `services.scx-loader`. It favours interactive tasks,
-  so the desktop stays smooth while a build uses every core. The kernel falls back to its built-in
-  scheduler by itself if a sched_ext scheduler misbehaves. `scxctl get` shows what is running.
+- **sched_ext scheduler:** `scx_lavd` through `services.scx-loader`. Made for laptops and handhelds
+  (the Steam Deck): it keeps the desktop, audio and games responsive while a build uses every core,
+  and it is power-aware. The kernel falls back to its built-in scheduler by itself if a sched_ext
+  scheduler misbehaves. `scxctl get` shows what is running; `scxctl switch --sched bpfland` tries
+  another one until the next boot.
 - **Memory:** the sysctl values recommended for zram (swap idle pages to compressed RAM early).
 - **Network:** BBR congestion control with the `fq` queueing discipline.
 
 Deliberately not done: disabling CPU security mitigations, and putting `/tmp` in RAM (large local
 builds would run out of memory).
+
+## Security settings
+
+- **sudo-rs** instead of sudo, usable only by the `wheel` group (`modules/nixos/users.nix`).
+- **Nix daemon:** only `wheel` members may build or add to the store (`allowed-users` in
+  `modules/nixos/nix.nix`).
+- **`/tmp` is emptied at every boot** (`boot.tmp.cleanOnBoot` in `modules/nixos/boot.nix`).
+- Also: Secure Boot with your own keys (lanzaboote), full-disk encryption (LUKS), nftables
+  firewall, rootless Podman, oo7 as the only keyring, and LibreWolf as the browser.
 
 ## Nix builds
 

@@ -3,13 +3,14 @@
 # on top. Each block is independent; delete one to go back to the kernel's defaults.
 {
   # A sched_ext CPU scheduler (kernel 6.12+): a scheduler loaded as a BPF program instead of
-  # the built-in one. scx_bpfland favours interactive tasks, so the desktop, audio and the
-  # editor stay smooth while a build uses every core. If such a scheduler ever misbehaves the
-  # kernel unloads it and falls back to the built-in scheduler by itself.
-  # `scxctl get` shows what is running; `scxctl switch --sched lavd` tries another one.
+  # the built-in one. scx_lavd was made for laptops and handhelds (the Steam Deck): it keeps the
+  # desktop, audio and games responsive while a build uses every core, and it is power-aware.
+  # If such a scheduler ever misbehaves the kernel unloads it and falls back to the built-in
+  # scheduler by itself. `scxctl get` shows what is running; `scxctl switch --sched bpfland`
+  # tries another one until the next boot.
   services.scx-loader = {
     enable = true;
-    config.default_sched = "scx_bpfland";
+    config.default_sched = "scx_lavd";
   };
 
   boot.kernel.sysctl = {
