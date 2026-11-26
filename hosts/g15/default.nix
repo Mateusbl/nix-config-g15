@@ -19,6 +19,10 @@
 
   networking.hostName = hostname;
 
+  # Installed RAM in GiB; disko sizes the swap partition from it (RAM + 2 GiB, hosts/g15/disko.nix).
+  # Only used when partitioning. The install guide (README, path B) sets it from the machine.
+  my.disk.ramGiB = 16;
+
   # What nixos-generate-config detected for this machine (Intel TigerLake-H, NVMe).
   boot.initrd.availableKernelModules = [
     "xhci_pci"

@@ -194,8 +194,20 @@ Every step from a blank USB stick to the finished desktop:
    ```
 
    The internal SSD should be `nvme0n1`. If it has another name, change `device` in
-   `hosts/g15/disko.nix` (`nano hosts/g15/disko.nix`). In the same file, the swap `size` (20G)
-   must be at least the amount of RAM (`free -h`), or hibernation will not work.
+   `hosts/g15/disko.nix` (`nano hosts/g15/disko.nix`).
+
+   Then write this machine's RAM into the config. The swap partition is sized from it (RAM +
+   2 GiB), so hibernation fits without reserving more disk than needed:
+
+   ```bash
+   sed -i "s/my.disk.ramGiB = [0-9]*;/my.disk.ramGiB = $(awk '/MemTotal/ {print int(($2 + 1048575) / 1048576)}' /proc/meminfo);/" hosts/g15/default.nix
+   ```
+
+   ```bash
+   grep ramGiB hosts/g15/default.nix
+   ```
+
+   It should show the RAM in GiB, rounded up (16 for 16 GiB).
 
 6. **Partition, encrypt, format and mount.** This is the step that erases the disk. It asks you
    to choose a passphrase for the swap partition and then for the root partition. Use the same
@@ -326,13 +338,15 @@ processes, and sends a desktop notification naming what it killed.
 | Partition | Size        | Contents                                                                                 |
 | --------- | ----------- | ---------------------------------------------------------------------------------------- |
 | ESP       | 1 GiB       | vfat → `/boot` (`fmask=0077,dmask=0077`)                                                 |
-| swap      | 20 GiB      | LUKS (`cryptswap`) → swap, also `boot.resumeDevice` for hibernation                      |
+| swap      | RAM + 2 GiB | LUKS (`cryptswap`) → swap, also `boot.resumeDevice` for hibernation                      |
 | root      | rest        | LUKS (`cryptroot`) → btrfs: top level `/`, subvolumes `home` → `/home`, `nix` → `/nix`  |
 
 Every btrfs mount uses `compress=zstd,noatime`. These options used to be in `storage.nix`.
 
-Swap has to be at least as large as RAM for hibernation. Change `size` in `disko.nix` if
-the machine has more than 16 GiB.
+The swap size follows the RAM: `my.disk.ramGiB` (in `hosts/g15/default.nix`) plus
+`my.disk.swapOffsetGiB` (2 GiB by default). Nix cannot read the RAM itself, so path B of the
+install guide writes the real value just before partitioning. The sizes are only used when disko
+partitions a disk; changing them on an installed machine changes nothing.
 
 The laptop is installed with this layout: the config finds the partitions by the GPT labels disko
 gives them (`disk-main-ESP`, `disk-main-swap`, `disk-main-root`), not by UUID.

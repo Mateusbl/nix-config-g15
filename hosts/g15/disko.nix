@@ -14,11 +14,38 @@
 #     --mode destroy,format,mount --flake .#g15
 #   sudo nixos-install --flake .#g15
 #
-# `device` is only read by the disko CLI when partitioning. The NixOS config refers to
-# partitions by GPT label (/dev/disk/by-partlabel/disk-main-*), so the system boots no
-# matter what the kernel names the disk.
+# `device` and the partition sizes are only read by the disko CLI when partitioning. The NixOS
+# config refers to partitions by GPT label (/dev/disk/by-partlabel/disk-main-*), so the system
+# boots no matter what the kernel names the disk, and changing a size later changes nothing on an
+# installed machine.
+#
+# Swap size follows the RAM: my.disk.ramGiB (set per host, see hosts/g15/default.nix) plus
+# my.disk.swapOffsetGiB. Nix cannot read the RAM itself (builds give the same result on every
+# machine), so the install guide (README, path B) writes the real value into the host file just
+# before disko runs.
+{ config, lib, ... }:
+
+let
+  cfg = config.my.disk;
+in
 {
-  disko.devices.disk.main = {
+  options.my.disk = {
+    ramGiB = lib.mkOption {
+      type = lib.types.ints.positive;
+      description = "Installed RAM in GiB, rounded up. Sizes the swap partition.";
+    };
+    swapOffsetGiB = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      default = 2;
+      description = ''
+        Swap beyond the RAM size. Hibernation writes RAM into swap (compressed, usually well
+        under the RAM size); the extra room covers a large image while some swap is already in
+        use, without reserving much more disk than needed.
+      '';
+    };
+  };
+
+  config.disko.devices.disk.main = {
     type = "disk";
     # Check with `lsblk` before running disko: everything on this disk is erased.
     device = "/dev/nvme0n1";
@@ -40,10 +67,10 @@
           };
         };
 
-        # Must be at least the size of RAM for hibernation to work reliably.
+        # RAM + offset, so hibernation always fits (see my.disk above).
         swap = {
           priority = 2;
-          size = "20G";
+          size = "${toString (cfg.ramGiB + cfg.swapOffsetGiB)}G";
           content = {
             type = "luks";
             name = "cryptswap";
