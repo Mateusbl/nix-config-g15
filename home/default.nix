@@ -5,6 +5,8 @@
     ./git.nix
     ./cli.nix
     ./session.nix
+    ./lock-idle.nix
+    ./bar.nix
     ./hyprland.nix
     ./editor/neovim # nixvim, split into one file per topic
     ./yazi.nix

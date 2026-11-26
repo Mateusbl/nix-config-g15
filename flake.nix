@@ -78,8 +78,10 @@
           modules = [
             ./hosts/${dir}
 
-            # Generic hardware profiles (there is no dell-g15-5511 module in nixos-hardware)
-            nixos-hardware.nixosModules.common-cpu-intel
+            # Hardware profiles (there is no dell-g15-5511 module in nixos-hardware). The CPU one is
+            # the TigerLake profile (11th-gen Intel), which nixos-hardware ships but does not list
+            # as a named module, so it is imported by path. It extends the generic Intel profile.
+            "${nixos-hardware}/common/cpu/intel/tiger-lake"
             nixos-hardware.nixosModules.common-gpu-nvidia
             nixos-hardware.nixosModules.common-pc-laptop
             nixos-hardware.nixosModules.common-pc-laptop-ssd

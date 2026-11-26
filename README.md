@@ -38,6 +38,9 @@ modules/nixos/                 shared system modules, one topic per file
   users.nix                    user account, zsh, sudo-rs
 home/                          home-manager modules, one topic per file
   shell.nix  git.nix  cli.nix  session.nix  hyprland.nix
+  lock-idle.nix                lock screen (hyprlock) and idle behaviour (hypridle)
+  bar.nix                      ashell: bar, notifications, volume/brightness overlay
+  lib/hyprland-bind.nix        helpers for Hyprland key bindings (used by hyprland.nix, desktop-extras.nix)
   editor/neovim/               nixvim, one file per topic (see the Editor section)
   yazi.nix                     Yazi file manager
   identity.nix                 name + email, shared by git.nix and jujutsu.nix
@@ -319,7 +322,7 @@ which is still `nixos` (set in `flake.nix`). If you change `hostname` there to `
 Settings live in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itself, see `nvidia.nix`).
 Nothing is throttled to save battery: the panel stays at 120 Hz and Wi-Fi power saving is off (set explicitly; the kernel default has it on).
 
-- **Power profile:** `balanced`, on the charger and on battery. It is set at boot and again whenever the charger is (un)plugged. The bar's settings panel has a button to change it by hand (`performance` for games or builds); it goes back to `balanced` at the next plug/unplug.
+- **Power profile:** every boot starts in `balanced`, on the charger and on battery. The bar's settings panel has a button to change it by hand (`performance` for games or builds); that lasts until the next reboot.
 - **Low-battery safety net (UPower):** low at 20%, critical at 10%, hibernate at 5%. A notification
   warns at 20% and again (critical) at 10% (`home/battery-warning.nix`).
 - Idle behaviour: dim after 5 min, lock after 10, screen off after 11, suspend-then-hibernate after 30 (and on lid close after 2 h of sleep).
@@ -356,6 +359,10 @@ A fresh install with disko is described step by step under [Installation](#insta
 ## NVIDIA
 
 PRIME offload: the Intel iGPU drives the desktop and the RTX 3050 sleeps until you need it.
+The basics come from nixos-hardware profiles in `flake.nix`: the TigerLake profile (Intel video drivers,
+microcode, GuC/HuC firmware for the iGPU with `i915.enable_guc=3`) and `common-gpu-nvidia` (driver,
+PRIME offload, `nvidia-offload`, nouveau blacklisted). `modules/nixos/nvidia.nix` adds the bus IDs,
+power management, 32-bit graphics and the open kernel modules.
 Run a program on the dGPU with:
 
 ```bash
@@ -536,7 +543,6 @@ The most used keys (the full list, with the VS Code equivalents, is in `docs/neo
 **Docs:**
 - `docs/neovim-cheatsheet.md`: VS Code action → key
 - `docs/neovim-decisions.md`: why things are the way they are, and open questions
-- `docs/neovim-audit.md`: the starting point
 
 Switches (set in `home/default.nix`):
 
@@ -552,7 +558,7 @@ my.neovim.optional.http.enable = true;            # also: database
 `home/yazi.nix` sets up [Yazi](https://yazi-rs.github.io) with its **default keymap**, so
 tutorials match.
 - **Start it:** `y` in zsh (cds to Yazi's last folder when you quit with `q`), or
-  `SUPER+E` or `SUPER+SHIFT+E` (opens it in Ghostty). It is the only file manager.
+  `SUPER+E` (opens it in Ghostty). It is the only file manager.
 - **Openers:** text and code → `$EDITOR` (Neovim), images → imv, audio/video → mpv, PDF →
   zathura, archives → Yazi's extract (7zip), anything else → `xdg-open`. These are also the
   desktop defaults. Directories open in Yazi (in a Ghostty window), and `text/plain` in Mousepad.
@@ -582,12 +588,12 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 | Volume / brightness / mute keys | change the value and show it in ashell's on-screen display (5% steps, volume up to 150%) |
 | `SUPER+M` | log out |
 
-- The bar is ashell (`home/session.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pwvucontrol (volume mixer); right-clicking Bluetooth opens overskride (pairing).
+- The bar is ashell (`home/bar.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pwvucontrol (volume mixer); right-clicking Bluetooth opens overskride (pairing).
 - Notifications are ashell's too: popups in the top-right corner, and the bell in the bar keeps the list (click it to see them, right-click for do not disturb). They are kept in memory until you log out.
 - Wi-Fi and Bluetooth are handled in that panel; there are no separate tray applets. Bluetooth is on from boot; turn it off there when you don't need it. For VPNs or editing a connection use `nmtui` in a terminal.
 - Login: greetd runs tuigreet, a text login prompt in the palette colours, which remembers the last user and session. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
 - Browser: LibreWolf (Firefox with privacy and security settings on by default, uBlock Origin included). It deletes cookies and history when it closes; change that in its Settings → Privacy & Security if you want to stay logged in.
-- The lock screen (hyprlock, `SUPER+Escape`) shows the time, the date, a greeting and the battery level over the wallpaper, in the palette colours (`home/session.nix`).
+- The lock screen (hyprlock, `SUPER+Escape`) shows the time, the date, a greeting and the battery level over the wallpaper, in the palette colours (`home/lock-idle.nix`).
 - The launcher is fuzzel (`SUPER+D`). The power menu, the clipboard picker and the emoji picker use it too.
 - Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
 - Ghostty draws a short fading streak when the cursor jumps (not while typing); see `home/ghostty-cursor.nix`.

@@ -10,13 +10,8 @@
 let
   cfg = config.my.desktop;
 
-  # Hyprland key binding in the Lua config format used by home/hyprland.nix.
-  bind = key: lua: {
-    _args = [
-      key
-      (lib.generators.mkLuaInline lua)
-    ];
-  };
+  # Hyprland key binding in the Lua config format (shared helper, home/lib/hyprland-bind.nix).
+  bind = (import ./lib/hyprland-bind.nix { inherit lib; }).bindCall;
 
   # Start/stop screen recording of a region. wf-recorder captures through the compositor
   # (Hyprland renders on the Intel iGPU, which drives the panel), and encodes with the CPU

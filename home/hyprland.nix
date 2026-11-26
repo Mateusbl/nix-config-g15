@@ -130,27 +130,15 @@
       # hl.bind(key, dispatcher, opts)
       bind =
         let
-          bindCall = key: dsp: {
-            _args = [
-              key
-              (lib.generators.mkLuaInline dsp)
-            ];
-          };
-          bindOpts = key: dsp: opts: {
-            _args = [
-              key
-              (lib.generators.mkLuaInline dsp)
-              opts
-            ];
-          };
+          # Shared helpers, also used by desktop-extras.nix (home/lib/hyprland-bind.nix)
+          inherit (import ./lib/hyprland-bind.nix { inherit lib; }) bindCall bindOpts;
         in
         [
           # Launchers & session
           (bindCall "SUPER + Return" ''hl.dsp.exec_cmd("ghostty")'')
           (bindCall "SUPER + Q" "hl.dsp.window.close()")
           (bindCall "SUPER + M" "hl.dsp.exit()") # log out
-          (bindCall "SUPER + E" ''hl.dsp.exec_cmd("ghostty -e yazi")'')
-          (bindCall "SUPER + SHIFT + E" ''hl.dsp.exec_cmd("ghostty -e yazi")'') # terminal file manager
+          (bindCall "SUPER + E" ''hl.dsp.exec_cmd("ghostty -e yazi")'') # file manager
           (bindCall "SUPER + D" ''hl.dsp.exec_cmd("fuzzel")'')
           (bindCall "SUPER + V" ''hl.dsp.window.float({ action = "toggle" })'')
           (bindCall "SUPER + F" "hl.dsp.window.fullscreen()")

@@ -4,7 +4,6 @@
   hostname,
   inputs,
   lib,
-  config,
   modulesPath,
   ...
 }:
@@ -34,7 +33,7 @@
   ];
   boot.kernelModules = [ "kvm-intel" ];
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  # Intel microcode updates come from the TigerLake profile (flake.nix).
 
   # Never change this after the first install
   system.stateVersion = "26.05";

@@ -1,5 +1,5 @@
 # Completion menu (blink.cmp) and snippets.
-{ ... }:
+_:
 
 {
   programs.nixvim = {

@@ -27,12 +27,10 @@
     LC_TELEPHONE = "pt_BR.UTF-8";
     LC_TIME = "pt_BR.UTF-8";
   };
-  # US keyboard: the default console keymap is already correct (ly password entry)
+  # US keyboard: the default console keymap is already correct (login screen password entry)
 
-  # System packages (everything else lives in home/)
+  # System packages (everything else lives in home/; nil and nixfmt come with Neovim)
   environment.systemPackages = with pkgs; [
-    nil
-    nixfmt
     git
     curl
     wget

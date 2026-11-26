@@ -1,5 +1,5 @@
 # Formatting engine (conform.nvim). Per-language formatters are set in languages/*.nix.
-{ ... }:
+_:
 
 {
   programs.nixvim = {
