@@ -33,9 +33,3 @@ jobs:
 
       - name: Evaluate the flake and the whole system
         run: nix flake check --no-build
-
-      - name: Evaluate a fresh install (without existing-install.nix)
-        run: |
-          # The install guide (README, path B) removes this import; make sure that still evaluates.
-          sed -i '/existing-install.nix/d' hosts/g15/default.nix
-          nix eval --raw .#nixosConfigurations.g15.config.system.build.toplevel.drvPath

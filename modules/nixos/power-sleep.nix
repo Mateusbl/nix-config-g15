@@ -29,11 +29,12 @@ in
   networking.wireless.iwd.settings.DriverQuirks.PowerSaveDisable = "*";
 
   # --- Power profile ---------------------------------------------------------------------
-  # power-profiles-daemon (above) sets the CPU's energy/performance bias. The profile follows the
-  # charger: "performance" when plugged in, "balanced" on battery. Nothing is throttled to save
-  # power (no power-saver profile, no Wi-Fi power saving, the panel stays at 120 Hz). The udev
-  # rules fire when the charger is (un)plugged and also once at boot. You can still change the
-  # profile by hand (the bar's settings panel has a power profile button); it is reset at the next plug/unplug.
+  # power-profiles-daemon (above) sets the CPU's energy/performance bias. The default is "balanced",
+  # on the charger and on battery: the udev rules below set it at boot and whenever the charger is
+  # (un)plugged. Nothing is throttled to save power (no power-saver profile, no Wi-Fi power saving,
+  # the panel stays at 120 Hz). Change it by hand with the power profile button in the bar's
+  # settings panel; it goes back to "balanced" at the next plug/unplug. To get "performance" on the
+  # charger again, change the second setProfile line below.
   services.udev.extraRules = ''
     SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="0", TAG+="systemd", ENV{SYSTEMD_WANTS}="power-profile-battery.service"
     SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}="power-profile-ac.service"

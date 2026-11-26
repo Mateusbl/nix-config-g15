@@ -8,7 +8,7 @@
     pulse.enable = true;
   };
 
-  # Bluetooth. The radio stays off after boot; turn it on from the bar's settings panel.
+  # Bluetooth, on from boot; the bar's settings panel turns it off and on.
   # blueman-manager (launcher, or right-click the panel's Bluetooth button) pairs new devices.
   hardware.bluetooth = {
     enable = true;
