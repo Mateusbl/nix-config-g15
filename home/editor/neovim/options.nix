@@ -1,5 +1,5 @@
 # Editor options, globals, clipboard and generic autocommands.
-{ ... }:
+_:
 
 {
   programs.nixvim = {

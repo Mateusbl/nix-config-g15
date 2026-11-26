@@ -4,10 +4,10 @@
 { config, ... }:
 
 let
-  # power-profiles-daemon's CLI; used by the charger rules below.
+  # power-profiles-daemon's CLI; used by the boot service below.
   powerprofilesctl = "${config.services.power-profiles-daemon.package}/bin/powerprofilesctl";
 
-  # A oneshot unit that switches the profile; started by the udev rules below.
+  # A oneshot unit that switches the profile.
   setProfile = profile: {
     description = "Switch the power profile to ${profile}";
     after = [ "power-profiles-daemon.service" ];
@@ -29,17 +29,14 @@ in
   networking.wireless.iwd.settings.DriverQuirks.PowerSaveDisable = "*";
 
   # --- Power profile ---------------------------------------------------------------------
-  # power-profiles-daemon (above) sets the CPU's energy/performance bias. The profile follows the
-  # charger: "performance" when plugged in, "balanced" on battery. Nothing is throttled to save
-  # power (no power-saver profile, no Wi-Fi power saving, the panel stays at 120 Hz). The udev
-  # rules fire when the charger is (un)plugged and also once at boot. You can still change the
-  # profile by hand (the bar's settings panel has a power profile button); it is reset at the next plug/unplug.
-  services.udev.extraRules = ''
-    SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="0", TAG+="systemd", ENV{SYSTEMD_WANTS}="power-profile-battery.service"
-    SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}="power-profile-ac.service"
-  '';
-  systemd.services.power-profile-battery = setProfile "balanced";
-  systemd.services.power-profile-ac = setProfile "balanced";
+  # power-profiles-daemon (above) sets the CPU's energy/performance bias. Every boot starts in
+  # "balanced", on the charger and on battery. Nothing is throttled to save power (no power-saver
+  # profile, no Wi-Fi power saving, the panel stays at 120 Hz). Change it by hand with the power
+  # profile button in the bar's settings panel (`performance` for games or builds); that lasts
+  # until the next reboot.
+  systemd.services.power-profile-default = setProfile "balanced" // {
+    wantedBy = [ "multi-user.target" ];
+  };
 
   # A safety net, not a power saver: UPower watches the battery and acts before it runs flat:
   # low at 20%, critical at 10%, and at 5% the laptop hibernates (the encrypted swap partition doubles as the hibernation target).

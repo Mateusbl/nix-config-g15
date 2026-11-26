@@ -1,5 +1,5 @@
 # Git: gutter signs and blame (gitsigns), lazygit.
-{ ... }:
+_:
 
 {
   programs.nixvim = {

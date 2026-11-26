@@ -17,6 +17,10 @@
       # This is what keeps third-party binary caches such as a project's Cachix out.
       accept-flake-config = false;
 
+      # Only admin users (group wheel) may talk to the Nix daemon, i.e. build or add things to the
+      # store. Root is always allowed.
+      allowed-users = [ "@wheel" ];
+
       # To add a cache on purpose, use `extra-substituters` + `extra-trusted-public-keys`
       # here, never via a flake's own nixConfig.
     };

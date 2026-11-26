@@ -5,6 +5,8 @@
     ./git.nix
     ./cli.nix
     ./session.nix
+    ./lock-idle.nix
+    ./bar.nix
     ./hyprland.nix
     ./editor/neovim # nixvim, split into one file per topic
     ./yazi.nix
@@ -12,6 +14,8 @@
     ./desktop-scripts.nix
     ./desktop-extras.nix
     ./battery-warning.nix
+    ./window-switcher.nix
+    ./ghostty-cursor.nix
   ];
 
   home.stateVersion = "26.05";

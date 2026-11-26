@@ -1,5 +1,5 @@
 # Core editing keymaps (windows, buffers, moving lines, save). Plugin keymaps live next to their plugin.
-{ ... }:
+_:
 
 {
   programs.nixvim = {

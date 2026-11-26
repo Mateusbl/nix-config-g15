@@ -1,5 +1,5 @@
 # Moving around: file explorer, oil, fuzzy finder, flash, search/replace, sessions, terminal.
-{ ... }:
+_:
 
 {
   programs.nixvim = {
@@ -38,7 +38,7 @@
       fzf-lua = {
         enable = true;
         profile = "default";
-        settings.winopts.tittle_pos = "center";
+        settings.winopts.title_pos = "center";
       };
       # --- mini.nvim ---
       mini = {

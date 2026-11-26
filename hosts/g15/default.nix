@@ -4,7 +4,6 @@
   hostname,
   inputs,
   lib,
-  config,
   modulesPath,
   ...
 }:
@@ -19,6 +18,10 @@
 
   networking.hostName = hostname;
 
+  # Installed RAM in GiB; disko sizes the swap partition from it (RAM + 2 GiB, hosts/g15/disko.nix).
+  # Only used when partitioning. The install guide (README, path B) sets it from the machine.
+  my.disk.ramGiB = 16;
+
   # What nixos-generate-config detected for this machine (Intel TigerLake-H, NVMe).
   boot.initrd.availableKernelModules = [
     "xhci_pci"
@@ -30,7 +33,7 @@
   ];
   boot.kernelModules = [ "kvm-intel" ];
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  # Intel microcode updates come from the TigerLake profile (flake.nix).
 
   # Never change this after the first install
   system.stateVersion = "26.05";

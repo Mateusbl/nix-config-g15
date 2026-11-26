@@ -16,6 +16,5 @@
     ./stylix.nix
     ./users.nix
     ./secrets.nix
-    ./gaming.nix
   ];
 }

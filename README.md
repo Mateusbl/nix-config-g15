@@ -2,8 +2,8 @@
 
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
-- **Desktop:** Hyprland (Lua config) started through UWSM, with the `ly` display manager, ashell (bar), fuzzel (launcher), Mako, hyprlock/hypridle and Ghostty
-- **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the ly login screen uses the same colours
+- **Desktop:** Hyprland (Lua config), greetd with tuigreet (login), ashell (bar, notifications, volume/brightness overlay), fuzzel (launcher), hyprshell (alt-tab), hyprlock/hypridle, Ghostty and LibreWolf
+- **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
 - **Editor:** Neovim (nixvim) set up for Java/Spring, Python (Django, FastAPI) and TypeScript/React/Angular. Project toolchains come from each project's devenv
@@ -19,7 +19,6 @@ hosts/
   g15/
     default.nix                host-specific bits: kernel modules, microcode, stateVersion
     disko.nix                  partition layout (replaces hardware-configuration.nix)
-    existing-install.nix       maps disko names onto the current partitions' UUIDs (temporary)
 modules/nixos/                 shared system modules, one topic per file
   base.nix                     NetworkManager with iwd, locale, system packages
   boot.nix                     systemd-boot signed by lanzaboote (Secure Boot), latest kernel
@@ -32,20 +31,25 @@ modules/nixos/                 shared system modules, one topic per file
   power-sleep.nix              lid/power key, suspend-then-hibernate, power profile
   oom.nix                      earlyoom: kills a runaway process before the machine freezes
   performance.nix              sched_ext scheduler, zram memory tuning, BBR networking
-  audio-bluetooth.nix          PipeWire, Bluetooth, blueman
-  desktop.nix                  ly, Hyprland/UWSM, portals, udisks
+  audio-bluetooth.nix          PipeWire, Bluetooth
+  desktop.nix                  greetd + tuigreet (login), Hyprland, portals, udisks
   podman.nix                   rootless Podman with docker compat
   stylix.nix                   theme, fonts, opacity
   users.nix                    user account, zsh, sudo-rs
 home/                          home-manager modules, one topic per file
   shell.nix  git.nix  cli.nix  session.nix  hyprland.nix
+  lock-idle.nix                lock screen (hyprlock) and idle behaviour (hypridle)
+  bar.nix                      ashell: bar, notifications, volume/brightness overlay
+  lib/hyprland-bind.nix        helpers for Hyprland key bindings (used by hyprland.nix, desktop-extras.nix)
   editor/neovim/               nixvim, one file per topic (see the Editor section)
   yazi.nix                     Yazi file manager
   identity.nix                 name + email, shared by git.nix and jujutsu.nix
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
-  desktop-scripts.nix          power menu, screenshots, clipboard picker; XDG user dirs
+  desktop-scripts.nix          power menu, screenshots (+ editor), clipboard and emoji pickers, wdisplays
   desktop-extras.nix           optional: night light, colour picker, screen recorder
   battery-warning.nix          notification at 20% and 10% battery
+  window-switcher.nix          alt-tab window switcher (hyprshell)
+  ghostty-cursor.nix           animated cursor trail in Ghostty (custom shader)
 docs/                          Neovim docs, devshell contract, jj and oo7 notes
 assets/nix-bg.png              wallpaper used by Stylix
 ```
@@ -67,7 +71,11 @@ Before you start, for both paths:
   boot path (bootvine shows the passphrase prompt).
 - The flake output is called `g15`. Every command below names it as `.#g15`.
 
-### A. On the current NixOS install (nothing is reformatted)
+### A. On a NixOS install that already uses this disk layout (nothing is reformatted)
+
+Use this to move an existing NixOS on this laptop to the current config, for example after
+reinstalling it from path B. The config finds the disks by the partition labels `hosts/g15/disko.nix`
+gives them; a machine partitioned some other way needs path B.
 
 1. Clone the repository where `nh` expects it (`programs.nh.flake` in `modules/nixos/nix.nix`):
 
@@ -79,31 +87,27 @@ Before you start, for both paths:
    cd ~/Code/nix-config
    ```
 
-2. **Check the disk IDs.** `hosts/g15/existing-install.nix` points at this laptop's partitions by
-   UUID. If they don't match, the new system cannot find its disks at boot. Compare them:
+2. **Check the partition labels.** The list must show `disk-main-ESP`, `disk-main-swap` and
+   `disk-main-root`:
 
    ```bash
-   lsblk -o NAME,FSTYPE,UUID,SIZE,MOUNTPOINTS
+   lsblk -o NAME,PARTLABEL,FSTYPE,SIZE,MOUNTPOINTS
    ```
 
-   The `crypto_LUKS` partition holding `/` must have the UUID in `rootUuid`, the other
-   `crypto_LUKS` partition (swap) the one in `swapUuid`, and the `vfat` partition mounted at `/boot`
-   the one in the `fileSystems."/boot"` line. Fix the file if any differs.
+   If they are missing, stop here and use path B: the new system would not find its disks.
 
-3. Try it without touching the boot menu. `test` activates the new system until the next reboot,
-   so a plain reboot brings the old one back:
+3. **Try it without touching the boot menu.** `nh` is not installed yet, so `nix-shell` fetches it
+   just for this command (the `NIX_CONFIG` part turns on flakes in case they are still off).
+   `test` activates the new system until the next reboot, so a plain reboot brings the old one back:
 
    ```bash
-   sudo nixos-rebuild test --flake .#g15
+   NIX_CONFIG="experimental-features = nix-command flakes" nix-shell -p nh --run "nh os test -H g15 ."
    ```
 
-   If Nix says flakes are not enabled yet, use this once instead:
+   `nh` shows which packages change and asks for your password itself. Without `nh`, the same
+   step is `sudo nixos-rebuild test --flake .#g15`.
 
-   ```bash
-   sudo NIX_CONFIG="experimental-features = nix-command flakes" nixos-rebuild test --flake .#g15
-   ```
-
-4. Log out and back in through ly, so the new session services start. Look around: the bar, the
+4. Log out and back in at the login screen, so the new session services start. Look around: the bar, the
    launcher (`SUPER+D`), a terminal, sound, Wi-Fi. Two quick checks for things you cannot see:
 
    ```bash
@@ -116,10 +120,15 @@ Before you start, for both paths:
 
    Both should list 0 units.
 
-5. If everything works, make it permanent (this adds the boot entry):
+5. **Make it permanent** (this adds the boot entry). The test system already contains `nh`, so
+   the `nrs` alias works now; if it is not found yet, use the `nix-shell` form:
 
    ```bash
-   sudo nixos-rebuild switch --flake .#g15
+   nrs
+   ```
+
+   ```bash
+   NIX_CONFIG="experimental-features = nix-command flakes" nix-shell -p nh --run "nh os switch -H g15 ."
    ```
 
    The boot screen and the passphrase prompt change with this step (bootvine).
@@ -151,9 +160,9 @@ Every step from a blank USB stick to the finished desktop:
    sudo dd if=PATH-TO-THE.iso of=/dev/sdX bs=4M status=progress oflag=sync
    ```
 
-2. **Boot it.** Plug the stick in, power on and press `F12` at the Dell logo, then pick the stick
-   under *UEFI Boot*. The firmware settings that let the current NixOS boot (Secure Boot off) are
-   the ones this install needs too, so there is nothing to change there. Close the graphical
+2. **Boot it.** If Secure Boot is on, turn it off first (`F2` at the Dell logo → Boot
+   Configuration): the installer is not signed with your keys. Then plug the stick in, power on,
+   press `F12` at the Dell logo and pick the stick under *UEFI Boot*. Close the graphical
    installer window if it opens: it is not used.
 
 3. **Network and terminal.** Connect to Wi-Fi from the menu in the top-right corner. Open the
@@ -188,21 +197,22 @@ Every step from a blank USB stick to the finished desktop:
    ```
 
    The internal SSD should be `nvme0n1`. If it has another name, change `device` in
-   `hosts/g15/disko.nix` (`nano hosts/g15/disko.nix`). In the same file, the swap `size` (20G)
-   must be at least the amount of RAM (`free -h`), or hibernation will not work.
+   `hosts/g15/disko.nix` (`nano hosts/g15/disko.nix`).
 
-6. **Remove the old-install bridge.** `hosts/g15/existing-install.nix` holds the UUIDs of the
-   partitions that are about to be erased. Delete its line from the imports:
+   Then write this machine's RAM into the config. The swap partition is sized from it (RAM +
+   2 GiB), so hibernation fits without reserving more disk than needed:
 
    ```bash
-   sed -i '/existing-install.nix/d' hosts/g15/default.nix
+   sed -i "s/my.disk.ramGiB = [0-9]*;/my.disk.ramGiB = $(awk '/MemTotal/ {print int(($2 + 1048575) / 1048576)}' /proc/meminfo);/" hosts/g15/default.nix
    ```
 
    ```bash
-   git rm hosts/g15/existing-install.nix
+   grep ramGiB hosts/g15/default.nix
    ```
 
-7. **Partition, encrypt, format and mount.** This is the step that erases the disk. It asks you
+   It should show the RAM in GiB, rounded up (16 for 16 GiB).
+
+6. **Partition, encrypt, format and mount.** This is the step that erases the disk. It asks you
    to choose a passphrase for the swap partition and then for the root partition. Use the same
    one for both, so the boot asks only once.
 
@@ -216,20 +226,20 @@ Every step from a blank USB stick to the finished desktop:
    findmnt -R /mnt
    ```
 
-8. **Install.** This downloads the system and compiles bootvine and lanzaboote, so it takes a while. At the end
+7. **Install.** `nh` cannot install onto a new disk, so this step uses NixOS's own installer. It downloads the system and compiles bootvine and lanzaboote, so it takes a while. At the end
    it asks for a root password.
 
    ```bash
    sudo nixos-install --flake .#g15
    ```
 
-9. **Set your own password.** The config sets none on purpose, and without one you cannot log in:
+8. **Set your own password.** The config sets none on purpose, and without one you cannot log in:
 
    ```bash
    sudo nixos-enter --root /mnt -c 'passwd mateus'
    ```
 
-10. **Take the repository with you**, including the edits from steps 5 and 6, to the place `nh`
+9. **Take the repository with you**, including the edits from step 5, to the place `nh`
     expects it:
 
     ```bash
@@ -244,17 +254,18 @@ Every step from a blank USB stick to the finished desktop:
     sudo nixos-enter --root /mnt -c 'chown -R mateus:users /home/mateus'
     ```
 
-11. **Reboot into the new system** and pull the stick out when the screen goes dark:
+10. **Reboot into the new system** and pull the stick out when the screen goes dark:
 
     ```bash
     reboot
     ```
 
-    bootvine asks for the disk passphrase, then ly asks for user `mateus` and the password from
-    step 9. Hyprland starts after login. `SUPER + Return` opens a terminal.
+    bootvine asks for the disk passphrase, then the login screen (tuigreet) asks for user `mateus` and the password from
+    step 8. Hyprland starts after login. `SUPER + Return` opens a terminal.
 
-12. **Finish.** Connect to Wi-Fi from the bar (click the icons on the right). Then confirm that rebuilding works
-    from the installed system and record the edits from steps 5 and 6:
+11. **Finish.** Connect to Wi-Fi from the bar (click the icons on the right). Then confirm that
+    rebuilding works from the installed system (`nh` is installed now, so the aliases work) and
+    record the edits from step 5:
 
     ```bash
     cd ~/Code/nix-config
@@ -273,9 +284,9 @@ If something goes wrong:
 - **disko or `nixos-install` stops with an error:** nothing is bootable yet, but both can simply be
   run again from the same terminal after fixing the cause.
 - **The new system does not boot or you cannot log in:** boot the USB stick again, repeat steps 3
-  to 6, then mount the installed system without formatting (`--mode mount` instead of
-  `--mode destroy,format,mount` in the command of step 7). After that, `nixos-install` and
-  `nixos-enter` from steps 8 and 9 work again.
+  to 5, then mount the installed system without formatting (`--mode mount` instead of
+  `--mode destroy,format,mount` in the command of step 6). After that, `nixos-install` and
+  `nixos-enter` from steps 7 and 8 work again.
 
 ### After either install
 
@@ -285,7 +296,8 @@ If something goes wrong:
   lists what a project's devenv must provide for Neovim.
 - **Secrets:** oo7 creates its keyring at the first login. Verification steps are in `docs/oo7-notes.md`.
 - **Secure Boot:** off until you turn it on in the firmware; the steps are in
-  [Secure Boot](#secure-boot-lanzaboote).
+  [Secure Boot](#secure-boot-lanzaboote). After a reinstall (path B) the old keys were erased with
+  the disk, so the firmware has to go through Setup Mode and enrollment again.
 
 ## Daily use
 
@@ -310,7 +322,7 @@ which is still `nixos` (set in `flake.nix`). If you change `hostname` there to `
 Settings live in `modules/nixos/power-sleep.nix` (the NVIDIA card sleeps by itself, see `nvidia.nix`).
 Nothing is throttled to save battery: the panel stays at 120 Hz and Wi-Fi power saving is off (set explicitly; the kernel default has it on).
 
-- **Profile follows the charger:** `performance` on AC, `balanced` on battery, set when the charger is (un)plugged and at boot. The bar's settings panel has a button to change it by hand (it is reset at the next plug/unplug).
+- **Power profile:** every boot starts in `balanced`, on the charger and on battery. The bar's settings panel has a button to change it by hand (`performance` for games or builds); that lasts until the next reboot.
 - **Low-battery safety net (UPower):** low at 20%, critical at 10%, hibernate at 5%. A notification
   warns at 20% and again (critical) at 10% (`home/battery-warning.nix`).
 - Idle behaviour: dim after 5 min, lock after 10, screen off after 11, suspend-then-hibernate after 30 (and on lid close after 2 h of sleep).
@@ -319,47 +331,38 @@ Nothing is throttled to save battery: the panel stays at 120 Hz and Wi-Fi power 
 
 `modules/nixos/oom.nix` runs earlyoom. When less than 10% of RAM is available and less than 20% of swap
 is free, it ends the biggest process (SIGTERM, then SIGKILL at half those values) instead of letting the
-desktop freeze. It avoids the session (Hyprland, ashell, PipeWire, oo7, ...), prefers Firefox tab
+desktop freeze. It avoids the session (Hyprland, ashell, PipeWire, oo7, ...), prefers browser tab
 processes, and sends a desktop notification naming what it killed.
 
 ## Disks (disko)
 
-`hosts/g15/disko.nix` describes the same layout the old generated
-`hardware-configuration.nix` mounted:
+`hosts/g15/disko.nix` declares the whole disk:
 
 | Partition | Size        | Contents                                                                                 |
 | --------- | ----------- | ---------------------------------------------------------------------------------------- |
 | ESP       | 1 GiB       | vfat → `/boot` (`fmask=0077,dmask=0077`)                                                 |
-| swap      | 20 GiB      | LUKS (`cryptswap`) → swap, also `boot.resumeDevice` for hibernation                      |
+| swap      | RAM + 2 GiB | LUKS (`cryptswap`) → swap, also `boot.resumeDevice` for hibernation                      |
 | root      | rest        | LUKS (`cryptroot`) → btrfs: top level `/`, subvolumes `home` → `/home`, `nix` → `/nix`  |
 
 Every btrfs mount uses `compress=zstd,noatime`. These options used to be in `storage.nix`.
 
-Swap has to be at least as large as RAM for hibernation. Change `size` in `disko.nix` if
-the machine has more than 16 GiB.
+The swap size follows the RAM: `my.disk.ramGiB` (in `hosts/g15/default.nix`) plus
+`my.disk.swapOffsetGiB` (2 GiB by default). Nix cannot read the RAM itself, so path B of the
+install guide writes the real value just before partitioning. The sizes are only used when disko
+partitions a disk; changing them on an installed machine changes nothing.
 
-### Already installed machine
-
-The current machine was installed with the NixOS installer, not with disko. Its partitions
-don't have disko's GPT labels (`disk-main-ESP`, `disk-main-swap`, `disk-main-root`).
-`hosts/g15/existing-install.nix` points the LUKS devices and `/boot` back at their existing
-UUIDs, so rebuilding keeps working and nothing is reformatted. The only visible change is
-that the LUKS mappings are now named `/dev/mapper/cryptroot` and `/dev/mapper/cryptswap`.
-
-You can drop `existing-install.nix` (and its import in `hosts/g15/default.nix`) after either of these:
-
-- a reinstall with disko (Installation, path B)
-- giving the existing partitions disko's labels. This doesn't touch any data. Check the partition numbers with `lsblk -o NAME,PARTLABEL,UUID,SIZE` first:
-
-  ```bash
-  sudo sgdisk -c 1:disk-main-ESP -c 2:disk-main-root -c 3:disk-main-swap /dev/nvme0n1
-  ```
+The laptop is installed with this layout: the config finds the partitions by the GPT labels disko
+gives them (`disk-main-ESP`, `disk-main-swap`, `disk-main-root`), not by UUID.
 
 A fresh install with disko is described step by step under [Installation](#installation), path B.
 
 ## NVIDIA
 
 PRIME offload: the Intel iGPU drives the desktop and the RTX 3050 sleeps until you need it.
+The basics come from nixos-hardware profiles in `flake.nix`: the TigerLake profile (Intel video drivers,
+microcode, GuC/HuC firmware for the iGPU with `i915.enable_guc=3`) and `common-gpu-nvidia` (driver,
+PRIME offload, `nvidia-offload`, nouveau blacklisted). `modules/nixos/nvidia.nix` adds the bus IDs,
+power management, 32-bit graphics and the open kernel modules.
 Run a program on the dGPU with:
 
 ```bash
@@ -432,22 +435,35 @@ Do this after the first switch to this config and one reboot.
    sudo sbctl verify
    ```
 
-   `status` must show your keys as installed. `verify` lists the boot files: the ones in use must be
-   signed. If some are not, run `nrs` again before going on.
+   `status` must show your keys as installed. `verify` lists the boot files: everything must be
+   signed except the files under `EFI/nixos/` whose names start with `kernel-`. Those are expected
+   to show as not signed: the signed generation file in `EFI/Linux/` holds a hash of its kernel and
+   checks it before loading it. If anything else is not signed, run `nrs` again before going on.
 
 2. **Put the firmware in Setup Mode.** Reboot, press `F2` at the Dell logo, and open the Secure
    Boot settings. Turn on custom key management ("Expert Key Management" on Dell) and delete the
    Platform Key (PK); that is what Setup Mode means. Menu names differ between BIOS versions. Save
    and boot NixOS. `sudo sbctl status` now shows Setup Mode as enabled.
 
-3. **Enroll your keys, together with Microsoft's:**
+3. **Enroll your keys, together with Microsoft's and Dell's:**
 
    ```bash
-   sudo sbctl enroll-keys --microsoft
+   sudo sbctl enroll-keys --microsoft --firmware-builtin
    ```
 
-   Keep `--microsoft`. The NVIDIA card's own firmware and Dell's updates are signed by Microsoft;
-   without those keys the firmware can refuse them and the laptop may not show a picture at all.
+   Your key becomes the Platform Key, so only you decide which keys are trusted. Keep
+   `--microsoft`: the NVIDIA card's own firmware is signed by Microsoft, and without that key the
+   firmware can refuse it and the laptop may not show a picture at all. `--firmware-builtin` also
+   keeps the keys the firmware shipped with (Dell's), so what Dell signed for this laptop keeps
+   working. Afterwards `sudo sbctl status` lists `microsoft` and `builtin-db`/`builtin-KEK`.
+
+   If it stops with `File is immutable: /sys/firmware/efi/efivars/…`, the kernel is protecting
+   those variables from accidental changes. Remove that protection for the files it names (the
+   command fetches `chattr`, which is not installed), then run `enroll-keys` again:
+
+   ```bash
+   sudo "$(nix build --no-link --print-out-paths nixpkgs#e2fsprogs.bin)/bin/chattr" -i /sys/firmware/efi/efivars/KEK-8be4df61-93ca-11d2-aa0d-00e098032b8c /sys/firmware/efi/efivars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f
+   ```
 
 4. **Turn Secure Boot on:** reboot, `F2`, enable Secure Boot, save.
 
@@ -495,10 +511,38 @@ message such as `jdtls not found: no devshell here`.
 - `:DevshellStatus` (`<leader>cD`) shows the `.envrc` state and every expected tool with its path and version.
 - `:DevshellReload` reloads the environments after you change a devshell.
 
+**Cheat sheet.** Leader is **Space**: press it and wait, and which-key shows what comes next.
+The most used keys (the full list, with the VS Code equivalents, is in `docs/neovim-cheatsheet.md`):
+
+| What | Keys |
+| --- | --- |
+| Find file | `<C-p>`, `<leader><space>`, `<leader>ff` |
+| Recent files | `<leader>fr` |
+| Search text in the project | `<leader>/`, `<leader>sg` |
+| Search and replace in the project | `<leader>sr` |
+| Open buffers / previous / next | `<leader>,` / `<S-h>` / `<S-l>` |
+| File tree / edit folder as text | `<leader>e` / `-` |
+| Go to definition / references | `gd` / `gr` |
+| Hover docs | `K` |
+| Rename symbol | `<F2>`, `<leader>cR` |
+| Code action (quick fix) | `<C-.>`, `<leader>ca` |
+| Format file (also on save) | `<leader>cf` |
+| Problems list / next problem | `<leader>xx` / `]d` |
+| Comment line | `gcc` |
+| Move line down / up | `<A-j>` / `<A-k>` |
+| Save | `<C-s>` |
+| Debug: start / breakpoint / step over / into | `<F5>` / `<F9>` / `<F10>` / `<F11>` |
+| Test at cursor / tests in file | `<leader>tr` / `<leader>tt` |
+| Run a task (tasks.json, npm, ...) | `<leader>or` |
+| Git (lazygit) / blame line | `<leader>gg` / `<leader>gb` |
+| Terminal | `<C-/>`, `<leader>ft` |
+| Project tools found (devshell status) | `<leader>cD` |
+| Restore last session for this folder | `<leader>qs` |
+| Undo history | `<leader>uu` |
+
 **Docs:**
 - `docs/neovim-cheatsheet.md`: VS Code action → key
 - `docs/neovim-decisions.md`: why things are the way they are, and open questions
-- `docs/neovim-audit.md`: the starting point
 
 Switches (set in `home/default.nix`):
 
@@ -514,7 +558,7 @@ my.neovim.optional.http.enable = true;            # also: database
 `home/yazi.nix` sets up [Yazi](https://yazi-rs.github.io) with its **default keymap**, so
 tutorials match.
 - **Start it:** `y` in zsh (cds to Yazi's last folder when you quit with `q`), or
-  `SUPER+E` or `SUPER+SHIFT+E` (opens it in Ghostty). It is the only file manager.
+  `SUPER+E` (opens it in Ghostty). It is the only file manager.
 - **Openers:** text and code → `$EDITOR` (Neovim), images → imv, audio/video → mpv, PDF →
   zathura, archives → Yazi's extract (7zip), anything else → `xdg-open`. These are also the
   desktop defaults. Directories open in Yazi (in a Ghostty window), and `text/plain` in Mousepad.
@@ -530,19 +574,31 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 
 | Key | Does |
 | --- | --- |
+| `ALT+Tab` / `ALT+SHIFT+Tab` | window switcher with previews, most recent first; release `ALT` to switch, `q` closes the selected window |
 | `SUPER+1`…`SUPER+0` | workspaces 1–10; with `SHIFT`, move the window there |
+| three-finger swipe left/right | previous / next workspace |
 | `SUPER+Escape` | lock |
 | `SUPER+SHIFT+Escape` | power menu (fuzzel): lock, suspend, hibernate, reboot, poweroff, logout. Nothing happens unless you pick one |
 | `Print` | region screenshot to the clipboard |
 | `Shift+Print` / `Ctrl+Print` | region / full screen to `~/Pictures/Screenshots`, with a notification |
+| `SUPER+Print` | region opened in satty to draw arrows, text or blur; `Ctrl+S` saves, `Ctrl+C` copies |
 | `SUPER+SHIFT+V` | clipboard history (cliphist, started with the session) |
+| `SUPER+.` | emoji picker (fuzzel): types the emoji and copies it |
 | `XF86AudioPlay/Next/Prev` | media control via playerctl, sent to the last used player (playerctld) |
-| Volume / brightness / mute keys | change the value and show it in a small notification with a bar (`osd`, drawn by mako in the theme colours) |
+| Volume / brightness / mute keys | change the value and show it in ashell's on-screen display (5% steps, volume up to 150%) |
+| `SUPER+M` | log out |
 
-- The bar is ashell (`home/session.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pavucontrol; right-clicking Bluetooth opens blueman-manager.
-- Wi-Fi and Bluetooth are handled in that panel; there are no separate tray applets. Bluetooth is off after boot until you turn it on there. For VPNs or editing a connection use `nmtui` in a terminal.
-- The launcher is fuzzel (`SUPER+D`). The power menu and the clipboard picker use it too.
-- Small utility windows float centred instead of tiling: the mixer, Bluetooth manager and file dialogs (`window_rule` in `home/hyprland.nix`).
+- The bar is ashell (`home/bar.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pwvucontrol (volume mixer); right-clicking Bluetooth opens overskride (pairing).
+- Notifications are ashell's too: popups in the top-right corner, and the bell in the bar keeps the list (click it to see them, right-click for do not disturb). They are kept in memory until you log out.
+- Wi-Fi and Bluetooth are handled in that panel; there are no separate tray applets. Bluetooth is on from boot; turn it off there when you don't need it. For VPNs or editing a connection use `nmtui` in a terminal.
+- Login: greetd runs tuigreet, a text login prompt in the palette colours, which remembers the last user and session. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
+- Browser: LibreWolf (Firefox with privacy and security settings on by default, uBlock Origin included). It deletes cookies and history when it closes; change that in its Settings → Privacy & Security if you want to stay logged in.
+- The lock screen (hyprlock, `SUPER+Escape`) shows the time, the date, a greeting and the battery level over the wallpaper, in the palette colours (`home/lock-idle.nix`).
+- The launcher is fuzzel (`SUPER+D`). The power menu, the clipboard picker and the emoji picker use it too.
+- Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
+- Ghostty draws a short fading streak when the cursor jumps (not while typing); see `home/ghostty-cursor.nix`.
+- `wdisplays` arranges monitors visually. It does not save anything: copy the resulting positions into the monitor list in `home/hyprland.nix`.
+- Small utility windows float centred instead of tiling: the mixer, Bluetooth manager, screenshot editor, wdisplays and file dialogs (`window_rule` in `home/hyprland.nix`).
 - Optional, off by default, in `home/desktop-extras.nix`:
   - `my.desktop.nightLight.enable`: hyprsunset, warmer colours from 20:00.
   - `my.desktop.colorPicker.enable`: hyprpicker on `SUPER+SHIFT+C`.
@@ -551,7 +607,7 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 ## Secrets: oo7
 
 `modules/nixos/secrets.nix` makes [oo7](https://github.com/linux-credentials/oo7) the only Secret
-Service. The keyring unlocks with your ly login password. The CLI is `oo7-cli` (store / lookup /
+Service. The keyring unlocks with your login password (greetd's PAM service includes `login`, which has pam_oo7). The CLI is `oo7-cli` (store / lookup /
 search / delete). gnome-keyring is forced off. Verification steps, gaps and the fallback are in
 `docs/oo7-notes.md`.
 
@@ -587,14 +643,25 @@ The base is current: `nixos-unstable`, the newest kernel (`linuxPackages_latest`
 systemd initrd and zstd-compressed zram. Update everything to the newest revisions with
 `nix flake update`. `modules/nixos/performance.nix` adds:
 
-- **sched_ext scheduler:** `scx_bpfland` through `services.scx-loader`. It favours interactive tasks,
-  so the desktop stays smooth while a build uses every core. The kernel falls back to its built-in
-  scheduler by itself if a sched_ext scheduler misbehaves. `scxctl get` shows what is running.
+- **sched_ext scheduler:** `scx_lavd` through `services.scx-loader`. Made for laptops and handhelds
+  (the Steam Deck): it keeps the desktop, audio and games responsive while a build uses every core,
+  and it is power-aware. The kernel falls back to its built-in scheduler by itself if a sched_ext
+  scheduler misbehaves. `scxctl get` shows what is running; `scxctl switch --sched bpfland` tries
+  another one until the next boot.
 - **Memory:** the sysctl values recommended for zram (swap idle pages to compressed RAM early).
 - **Network:** BBR congestion control with the `fq` queueing discipline.
 
 Deliberately not done: disabling CPU security mitigations, and putting `/tmp` in RAM (large local
 builds would run out of memory).
+
+## Security settings
+
+- **sudo-rs** instead of sudo, usable only by the `wheel` group (`modules/nixos/users.nix`).
+- **Nix daemon:** only `wheel` members may build or add to the store (`allowed-users` in
+  `modules/nixos/nix.nix`).
+- **`/tmp` is emptied at every boot** (`boot.tmp.cleanOnBoot` in `modules/nixos/boot.nix`).
+- Also: Secure Boot with your own keys (lanzaboote), full-disk encryption (LUKS), nftables
+  firewall, rootless Podman, oo7 as the only keyring, and LibreWolf as the browser.
 
 ## Nix builds
 
@@ -630,8 +697,8 @@ instantiates the system closure. The third builds the disko partitioning script 
 running it.
 
 **CI** (`.github/workflows/ci.yml`) runs on every pull request and every push to `main`: the
-nixfmt formatting check, `nix flake check --no-build`, and an evaluation of the system as a fresh
-install (without `existing-install.nix`). It evaluates only; it does not build the system.
+nixfmt formatting check and `nix flake check --no-build`. It evaluates only; it does not build the
+system. It currently does not start at all because of a billing problem on the GitHub account.
 
 There are no automated tests of the running machine or of the Neovim config. After a switch,
 `systemctl --failed` and `systemctl --user --failed` show services that did not start.

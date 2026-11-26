@@ -1,6 +1,6 @@
 # Rules for this repository
 
-NixOS flake for a Dell G15: Hyprland (UWSM), Stylix, home-manager as a NixOS module.
+NixOS flake for a Dell G15: Hyprland (session services via home-manager, no UWSM), greetd, Stylix, home-manager as a NixOS module.
 Layout: `flake.nix`, `hosts/g15`, `modules/nixos/*`, `home/*`.
 
 - Never install Claude Code: no `claude-code` package, no claudecode.nvim or other Claude Code integration.
