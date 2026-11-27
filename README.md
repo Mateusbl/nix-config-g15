@@ -172,11 +172,12 @@ Every step from a blank USB stick to the finished desktop:
    ping -c 3 nixos.org
    ```
 
-4. **Get the repository.** The first command opens a shell that has `git`; stay in it until the
+4. **Get the repository.** The first command opens a shell that has `git` and `nom`
+   (nix-output-monitor, which shows the install's build progress in step 7); stay in it until the
    end.
 
    ```bash
-   nix-shell -p git
+   nix-shell -p git nix-output-monitor
    ```
 
    ```bash
@@ -226,12 +227,21 @@ Every step from a blank USB stick to the finished desktop:
    findmnt -R /mnt
    ```
 
-7. **Install.** `nh` cannot install onto a new disk, so this step uses NixOS's own installer. It downloads the system and compiles bootvine and lanzaboote, so it takes a while. At the end
-   it asks for a root password.
+7. **Install.** `nh` cannot install onto a new disk, so this step uses NixOS's own installer. It
+   downloads the system and compiles bootvine and lanzaboote, so it takes a while. Its build output
+   goes through `nom`, the same progress tree `nh` shows:
 
    ```bash
-   sudo nixos-install --flake .#g15
+   sudo nixos-install --flake .#g15 --no-root-passwd --log-format internal-json -v |& nom --json
    ```
+
+   - `--log-format internal-json -v` makes Nix print machine-readable progress, which
+     `nom --json` draws as a tree. `|&` sends both output streams to `nom`.
+   - `--no-root-passwd` skips the root password prompt at the end, which would be hidden behind
+     `nom`. No root password is needed: your user is an admin through the `wheel` group, and
+     step 8 sets its password.
+   - Without `nom`, plain `sudo nixos-install --flake .#g15` works too (it then asks for a root
+     password at the end).
 
 8. **Set your own password.** The config sets none on purpose, and without one you cannot log in:
 
