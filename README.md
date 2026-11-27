@@ -56,12 +56,13 @@ assets/nix-bg.png              wallpaper used by Stylix
 
 ## Installation
 
-Pick one of two paths:
+Pick one of two paths, then turn on Secure Boot (C):
 
 | | Path | Data on disk |
 | --- | --- | --- |
 | **A** | Switch the NixOS that is already on this laptop to this config | kept, nothing is reformatted |
 | **B** | Install from the NixOS installer USB with disko | **erased** |
+| **C** | Turn on Secure Boot (lanzaboote, your own keys), after A or B | kept |
 
 Before you start, for both paths:
 
@@ -135,7 +136,7 @@ gives them; a machine partitioned some other way needs path B.
 
 6. Reboot once and confirm the passphrase prompt, login and hibernation work.
 
-7. Optional: turn on Secure Boot, see [Secure Boot](#secure-boot-lanzaboote).
+7. Turn on Secure Boot: [C. Turn on Secure Boot](#c-turn-on-secure-boot-after-path-a-or-b).
 
 If something goes wrong:
 
@@ -289,6 +290,8 @@ Every step from a blank USB stick to the finished desktop:
     git commit -am "g15: installed with disko"
     ```
 
+12. **Secure Boot:** continue with [C. Turn on Secure Boot](#c-turn-on-secure-boot-after-path-a-or-b).
+
 If something goes wrong:
 
 - **disko or `nixos-install` stops with an error:** nothing is bootable yet, but both can simply be
@@ -298,6 +301,87 @@ If something goes wrong:
   `--mode destroy,format,mount` in the command of step 6). After that, `nixos-install` and
   `nixos-enter` from steps 7 and 8 work again.
 
+### C. Turn on Secure Boot (after path A or B)
+
+The system already boots through lanzaboote (signed systemd-boot, `modules/nixos/boot.nix`), but the
+firmware does not check signatures until you enroll your keys and switch Secure Boot on. Do this
+once, after the first switch (path A) or the first boot of the new system (path B). Your keys are
+created automatically at that first boot (`/var/lib/sbctl`).
+
+1. **Sign everything with the new keys, then check.** The very first install could not sign yet,
+   because the keys did not exist; this `nrs` signs everything:
+
+   ```bash
+   nrs
+   ```
+
+   ```bash
+   sudo sbctl status
+   ```
+
+   ```bash
+   sudo sbctl verify
+   ```
+
+   `status` must show your keys as installed. `verify` lists the boot files: everything must be
+   signed except the files under `EFI/nixos/` whose names start with `kernel-`. Those are expected
+   to show as not signed: the signed generation file in `EFI/Linux/` holds a hash of its kernel and
+   checks it before loading it. If anything else is not signed, run `nrs` again before going on.
+
+2. **Put the firmware in Setup Mode.** Reboot, press `F2` at the Dell logo and open **Boot
+   Configuration**. Under **Expert Key Management**, switch **Enable Custom Mode** on, select **PK**
+   in "Custom Mode Key Management", press **Delete**, then **APPLY CHANGES** and **EXIT**.
+   - Leave "Deployed Mode" selected and Secure Boot itself off for now.
+   - Do not press "Reset All Keys": it puts Dell's Platform Key back and you leave Setup Mode.
+
+   Back in NixOS, check that the firmware is now in Setup Mode:
+
+   ```bash
+   sudo sbctl status
+   ```
+
+   It must say `Setup Mode: ✗ Enabled` (the ✗ only means "not protected yet") and no longer list
+   `builtin-PK`.
+
+3. **Enroll your keys, together with Microsoft's and Dell's:**
+
+   ```bash
+   sudo sbctl enroll-keys --microsoft --firmware-builtin
+   ```
+
+   Your key becomes the Platform Key, so only you decide which keys are trusted. Keep
+   `--microsoft`: the NVIDIA card's own firmware is signed by Microsoft, and without that key the
+   firmware can refuse it and the laptop may not show a picture at all. `--firmware-builtin` also
+   keeps the keys the firmware shipped with (Dell's), so what Dell signed for this laptop keeps
+   working. Afterwards `sudo sbctl status` shows `Setup Mode: ✓ Disabled` and lists `microsoft`
+   and `builtin-db`/`builtin-KEK`.
+
+   If it stops with `File is immutable: /sys/firmware/efi/efivars/…`, the kernel is protecting
+   those variables from accidental changes. Remove that protection for the files it names (the
+   command fetches `chattr`, which is not installed), then run `enroll-keys` again:
+
+   ```bash
+   sudo "$(nix build --no-link --print-out-paths nixpkgs#e2fsprogs.bin)/bin/chattr" -i /sys/firmware/efi/efivars/KEK-8be4df61-93ca-11d2-aa0d-00e098032b8c /sys/firmware/efi/efivars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f
+   ```
+
+4. **Turn Secure Boot on:** reboot, `F2`, Boot Configuration, enable **Secure Boot**, APPLY
+   CHANGES, EXIT.
+
+5. **Check** once NixOS is up:
+
+   ```bash
+   bootctl status
+   ```
+
+   It must say `Secure Boot: enabled (user)`.
+
+If the laptop refuses to boot after step 4, go back into the firmware (`F2`) and turn Secure Boot
+off: the system starts exactly as before, with your keys still enrolled. To start over with Dell's
+original keys, use "Reset All Keys" in the same menu (with Secure Boot off).
+
+After a reinstall (path B) the old keys were erased with the disk while the firmware still has
+them, so repeat this whole section: Setup Mode, enroll the new keys, Secure Boot on.
+
 ### After either install
 
 - **SSH key:** the config creates none. Make one with `ssh-keygen -t ed25519` and add the public key
@@ -305,9 +389,7 @@ If something goes wrong:
 - **Projects:** run `direnv allow` once in each project that has an `.envrc`. `docs/devshell-contract.md`
   lists what a project's devenv must provide for Neovim.
 - **Secrets:** oo7 creates its keyring at the first login. Verification steps are in `docs/oo7-notes.md`.
-- **Secure Boot:** off until you turn it on in the firmware; the steps are in
-  [Secure Boot](#secure-boot-lanzaboote). After a reinstall (path B) the old keys were erased with
-  the disk, so the firmware has to go through Setup Mode and enrollment again.
+- **Secure Boot:** off until you do [C. Turn on Secure Boot](#c-turn-on-secure-boot-after-path-a-or-b).
 
 ## Daily use
 
@@ -427,61 +509,10 @@ rollbacks work as before, and editing the kernel command line from the menu is o
 - **NVIDIA and hibernation keep working:** nothing in this config turns on kernel lockdown or forced
   module signatures, which are what would block them.
 
-### Turning it on (once)
+### Turning it on
 
-Do this after the first switch to this config and one reboot.
-
-1. Sign everything with the new keys, then check:
-
-   ```bash
-   nrs
-   ```
-
-   ```bash
-   sudo sbctl status
-   ```
-
-   ```bash
-   sudo sbctl verify
-   ```
-
-   `status` must show your keys as installed. `verify` lists the boot files: everything must be
-   signed except the files under `EFI/nixos/` whose names start with `kernel-`. Those are expected
-   to show as not signed: the signed generation file in `EFI/Linux/` holds a hash of its kernel and
-   checks it before loading it. If anything else is not signed, run `nrs` again before going on.
-
-2. **Put the firmware in Setup Mode.** Reboot, press `F2` at the Dell logo, and open the Secure
-   Boot settings. Turn on custom key management ("Expert Key Management" on Dell) and delete the
-   Platform Key (PK); that is what Setup Mode means. Menu names differ between BIOS versions. Save
-   and boot NixOS. `sudo sbctl status` now shows Setup Mode as enabled.
-
-3. **Enroll your keys, together with Microsoft's and Dell's:**
-
-   ```bash
-   sudo sbctl enroll-keys --microsoft --firmware-builtin
-   ```
-
-   Your key becomes the Platform Key, so only you decide which keys are trusted. Keep
-   `--microsoft`: the NVIDIA card's own firmware is signed by Microsoft, and without that key the
-   firmware can refuse it and the laptop may not show a picture at all. `--firmware-builtin` also
-   keeps the keys the firmware shipped with (Dell's), so what Dell signed for this laptop keeps
-   working. Afterwards `sudo sbctl status` lists `microsoft` and `builtin-db`/`builtin-KEK`.
-
-   If it stops with `File is immutable: /sys/firmware/efi/efivars/…`, the kernel is protecting
-   those variables from accidental changes. Remove that protection for the files it names (the
-   command fetches `chattr`, which is not installed), then run `enroll-keys` again:
-
-   ```bash
-   sudo "$(nix build --no-link --print-out-paths nixpkgs#e2fsprogs.bin)/bin/chattr" -i /sys/firmware/efi/efivars/KEK-8be4df61-93ca-11d2-aa0d-00e098032b8c /sys/firmware/efi/efivars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f
-   ```
-
-4. **Turn Secure Boot on:** reboot, `F2`, enable Secure Boot, save.
-
-5. Boot NixOS and check that `sudo sbctl status` shows Secure Boot as enabled.
-
-If the laptop refuses to boot after step 4, go back into the firmware (`F2`) and turn Secure Boot
-off: the system starts exactly as before. Updates later need nothing extra: every `nrs` signs the
-new generation.
+The steps are part of the install guide: [C. Turn on Secure Boot](#c-turn-on-secure-boot-after-path-a-or-b).
+Updates need nothing extra afterwards: every `nrs` signs the new generation.
 
 ## Editor
 
