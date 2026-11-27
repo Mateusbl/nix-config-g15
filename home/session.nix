@@ -79,7 +79,6 @@
   # two only produce errors or warnings (rofi: a renamed option; wayprompt: removed from
   # home-manager), so their Stylix themes are off.
   stylix.targets.rofi.enable = false;
-  stylix.targets.wayprompt.enable = false;
 
   home.packages = with pkgs; [
     mousepad
