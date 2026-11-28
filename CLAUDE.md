@@ -3,7 +3,7 @@
 NixOS flake for a Dell G15: Hyprland (session services via home-manager, no UWSM), greetd, Stylix, home-manager as a NixOS module.
 Layout: `flake.nix`, `hosts/g15`, `modules/nixos/*`, `home/*`.
 
-- Never install Claude Code: no `claude-code` package, no claudecode.nvim or other Claude Code integration.
+- No AI tools: never install AI assistants, AI editor plugins or AI CLIs (Claude Code, claudecode.nvim, Copilot, codecompanion, Ollama, ...). Programs that merely ship AI features (a browser or editor with an AI panel) are fine: don't remove them for that reason.
 - Don't guess option or package names: confirm them against the locked versions (`nix eval`, the source in the store).
 - Only nixpkgs. No new flake inputs or substituters without asking. Allowed by the owner: the `bootvine` flake (codeberg) and the `lanzaboote` flake (Secure Boot), both compiled locally; its Cachix and every other binary cache beyond cache.nixos.org stay unused.
 - Never install or enable: nix-ld; gh or similar imperative CLIs; FHS shims (vscode-fhs, buildFHSEnv wrappers, steam-run, appimage-run, Flatpak); Mason or any runtime downloader (sdkman, `npm -g`, `pip --user`, `cargo install`, `go install`, `ya pkg`, `:TSInstall`). Only exception: `programs.steam`. If a task seems to need one of these, ask.

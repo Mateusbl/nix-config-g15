@@ -75,9 +75,9 @@
   programs.librewolf.enable = true;
   stylix.targets.librewolf.profileNames = [ "default" ];
 
-  # Stylix themes every program it knows by default, including ones that are not installed. These
-  # two only produce errors or warnings (rofi: a renamed option; wayprompt: removed from
-  # home-manager), so their Stylix themes are off.
+  # Stylix themes every program it knows by default, including ones that are not installed. Its
+  # rofi theme sets an option home-manager has renamed, which only produces a warning, so it is
+  # off (rofi is not used; fuzzel is the launcher).
   stylix.targets.rofi.enable = false;
 
   home.packages = with pkgs; [

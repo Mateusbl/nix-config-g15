@@ -49,7 +49,6 @@ home/                          home-manager modules, one topic per file
   desktop-extras.nix           optional: night light, colour picker, screen recorder
   battery-warning.nix          notification at 20% and 10% battery
   window-switcher.nix          alt-tab window switcher (hyprshell)
-  ghostty-cursor.nix           animated cursor trail in Ghostty (custom shader)
 docs/                          Neovim docs, devshell contract, jj and oo7 notes
 assets/nix-bg.png              wallpaper used by Stylix
 ```
@@ -637,7 +636,6 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 - The lock screen (hyprlock, `SUPER+Escape`) shows the time, the date, a greeting and the battery level over the wallpaper, in the palette colours (`home/lock-idle.nix`).
 - The launcher is fuzzel (`SUPER+D`). The power menu, the clipboard picker and the emoji picker use it too.
 - Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
-- Ghostty draws a short fading streak when the cursor jumps (not while typing); see `home/ghostty-cursor.nix`.
 - `wdisplays` arranges monitors visually. It does not save anything: copy the resulting positions into the monitor list in `home/hyprland.nix`.
 - Small utility windows float centred instead of tiling: the mixer, Bluetooth manager, screenshot editor, wdisplays and file dialogs (`window_rule` in `home/hyprland.nix`).
 - Optional, off by default, in `home/desktop-extras.nix`:
