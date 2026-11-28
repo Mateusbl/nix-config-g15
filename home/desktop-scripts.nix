@@ -28,6 +28,9 @@ let
   };
 
   # Shift+Print: region to a file; Ctrl+Print: whole screen to a file. Both notify.
+  # SUPER+Print (edit): region opened in satty to draw arrows, text or blur; Ctrl+S there saves
+  # to the Screenshots folder, Ctrl+C copies, and satty closes after either. satty is GTK4, an
+  # allowed exception (CLAUDE.md): drawing needs a window, and GTK4 is already there for Ghostty.
   # (Plain Print, region to clipboard, stays a one-liner in hyprland.nix.)
   screenshot = pkgs.writeShellApplication {
     name = "screenshot";
@@ -36,6 +39,8 @@ let
       slurp
       libnotify
       coreutils
+      satty
+      wl-clipboard
     ];
     text = ''
       dir=${screenshotsDir}
@@ -47,8 +52,14 @@ let
           grim -g "$area" "$file"
           ;;
         full) grim "$file" ;;
+        edit)
+          area=$(slurp) || exit 0
+          grim -g "$area" - | satty --filename - --output-filename "$file" \
+            --copy-command wl-copy --early-exit
+          exit 0 # satty shows its own result; no notification here
+          ;;
         *)
-          echo "usage: screenshot region|full" >&2
+          echo "usage: screenshot region|full|edit" >&2
           exit 1
           ;;
       esac

@@ -89,6 +89,12 @@
           center = true;
           size = "1000 650";
         }
+        {
+          name = "float-screenshot-editor";
+          match.class = "^com\\.gabm\\.satty$";
+          float = true;
+          center = true;
+        }
       ];
 
       # hl.bind(key, dispatcher, opts)
@@ -114,6 +120,8 @@
           (bindCall "Print" ''hl.dsp.exec_cmd("grim -g \"$(slurp)\" - | wl-copy")'')
           (bindCall "SHIFT + Print" ''hl.dsp.exec_cmd("screenshot region")'')
           (bindCall "CTRL + Print" ''hl.dsp.exec_cmd("screenshot full")'')
+          # Region opened in an editor (arrows, text, blur) before saving
+          (bindCall "SUPER + Print" ''hl.dsp.exec_cmd("screenshot edit")'')
 
           # Clipboard history
           (bindCall "SUPER + SHIFT + V" ''hl.dsp.exec_cmd("clipboard-pick")'')
