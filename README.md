@@ -213,6 +213,15 @@ Every step from a blank USB stick to the finished desktop:
 
    It should show the RAM in GiB, rounded up (16 for 16 GiB).
 
+   Commit these edits right away. Nix warns "Git tree is dirty" for every command run on a
+   repository with uncommitted changes; after this commit, steps 6 and 7 run without warnings.
+   The live USB has no git identity, so the commit is signed with a temporary one that step 11
+   replaces with yours:
+
+   ```bash
+   git -c user.name=installer -c user.email=installer@localhost commit -am "g15: installed with disko"
+   ```
+
 6. **Partition, encrypt, format and mount.** This is the step that erases the disk. It asks you
    to choose a passphrase for the swap partition and then for the root partition. Use the same
    one for both, so the boot asks only once.
@@ -291,7 +300,7 @@ Every step from a blank USB stick to the finished desktop:
 
 11. **Finish.** Connect to Wi-Fi from the bar (click the icons on the right). Then confirm that
     rebuilding works from the installed system (`nh` is installed now, so the aliases work) and
-    record the edits from step 5:
+    put your own name on the commit from step 5:
 
     ```bash
     cd ~/Code/nix-config
@@ -302,7 +311,7 @@ Every step from a blank USB stick to the finished desktop:
     ```
 
     ```bash
-    git commit -am "g15: installed with disko"
+    git commit --amend --reset-author --no-edit
     ```
 
 12. **Secure Boot:** continue with [C. Turn on Secure Boot](#c-turn-on-secure-boot-after-path-a-or-b).

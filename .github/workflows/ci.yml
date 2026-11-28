@@ -37,7 +37,8 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
           df -h /
 
-      - uses: actions/checkout@v4
+      # v5 runs on Node.js 24; v4 still targets Node.js 20, which GitHub warns is deprecated.
+      - uses: actions/checkout@v5
 
       # Installs plain upstream Nix. Despite the action's name, no Cachix cache is used:
       # the only substituter is cache.nixos.org.
