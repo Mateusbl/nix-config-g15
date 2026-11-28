@@ -4,8 +4,10 @@
 #   2. `nix flake check`: evaluates the whole NixOS + home-manager configuration
 #   3. Hyprland's own config check, once per monitor profile (home/monitors.nix): each profile
 #      template is filled in with example connector names and loaded through hyprland.lua
-#   4. hyprdynamicmonitors' own config check
-#   5. the full system build, the same `nix build` the laptop runs
+#   4. a simulation of every monitor profile: the laptop panel is never switched off unless
+#      another screen is connected
+#   5. hyprdynamicmonitors' own config check
+#   6. the full system build, the same `nix build` the laptop runs
 name: CI
 
 on:
@@ -72,6 +74,65 @@ jobs:
             sed "s#$dest#$work/monitors.lua#" "$lua" > "$work/hyprland.lua"
             echo "== $tmpl"; cat "$work/monitors.lua"
             check "$tmpl" "$work/hyprland.lua"
+          done
+
+      # Runs each monitor profile with a fake Hyprland that reports which screens are connected,
+      # and checks that the laptop panel can never end up as the only screen and switched off.
+      - name: Laptop screen stays usable (simulated monitor profiles)
+        run: |
+          hm='.#nixosConfigurations.g15.config.home-manager.users.mateus'
+          toml=$(nix build --no-link --print-out-paths "$hm.xdg.configFile.\"hyprdynamicmonitors/config.toml\".source")
+          lua=$(nix build --no-link --print-out-paths '.#nixosConfigurations.g15.pkgs.lua5_4^out')
+          work=$(mktemp -d)
+
+          cat > "$work/simulate.lua" <<'LUA'
+          -- usage: lua simulate.lua <monitors.lua> <connected screens, comma-separated>
+          local file, connected = arg[1], arg[2] or ""
+          local rules = {}
+          hl = {
+            monitor = function(spec) rules[spec.output] = spec end,
+            get_monitors = function()
+              local list = {}
+              for name in string.gmatch(connected, "[^,]+") do list[#list + 1] = { name = name } end
+              return list
+            end,
+          }
+          dofile(file)
+          for output, spec in pairs(rules) do
+            print(output .. " " .. (spec.disabled and "off" or "on") .. " " .. tostring(spec.mode))
+          end
+          LUA
+
+          fail() { echo "::error::$1"; exit 1; }
+          sim() { "$lua/bin/lua" "$work/simulate.lua" "$1" "$2"; }
+
+          grep -o '/nix/store/[^"]*\.lua\.tmpl' "$toml" | while read -r tmpl; do
+            name=$(basename "$tmpl" .lua.tmpl | cut -d- -f2-)
+            # shellcheck disable=SC2016 # the $ is a literal part of the template fields
+            sed -e '/^{{-/d' -e 's/{{ \$laptop\.Name }}/eDP-1/g' -e 's/{{ \$external\.Name }}/HDMI-A-1/g' \
+              "$tmpl" > "$work/$name.lua"
+
+            for connected in "eDP-1" ""; do
+              state=$(sim "$work/$name.lua" "$connected")
+              echo "== $name, connected: '${connected:-none listed yet}'"; echo "$state"
+              if echo "$state" | grep -q '^eDP-1 off'; then
+                fail "$name switches the panel off although no other screen is connected"
+              fi
+            done
+
+            both=$(sim "$work/$name.lua" "eDP-1,HDMI-A-1")
+            echo "== $name, connected: eDP-1 + HDMI-A-1"; echo "$both"
+            case "$name" in
+              laptop)
+                echo "$both" | grep -q '^eDP-1 on 1920x1080@120' || fail "laptop: panel not at 1920x1080@120" ;;
+              docked)
+                echo "$both" | grep -q '^eDP-1 on' || fail "docked: panel not on"
+                echo "$both" | grep -q '^HDMI-A-1 on' || fail "docked: external screen not on" ;;
+              docked-closed)
+                echo "$both" | grep -q '^eDP-1 off' || fail "docked-closed: panel not switched off"
+                echo "$both" | grep -q '^HDMI-A-1 on' || fail "docked-closed: external screen not on" ;;
+              *) fail "unknown profile $name: add its expectations here" ;;
+            esac
           done
 
       - name: hyprdynamicmonitors config check

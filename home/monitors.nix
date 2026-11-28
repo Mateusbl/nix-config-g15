@@ -13,7 +13,16 @@
 # is not used, so the config file and the service are declared here.
 #
 # `hyprdynamicmonitors tui` shows the connected screens and which profile matches.
-{ config, pkgs, ... }:
+#
+# Rescue: SUPER+SHIFT+M deletes the generated layout and reloads, so every screen comes back on
+# with the catch-all rule (works even when the panel is dark: the keyboard still works). The next
+# change (plugging, lid) makes the daemon pick a profile again.
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   destination = "${config.xdg.configHome}/hypr/monitors.lua";
@@ -61,6 +70,20 @@ let
     monitor_tag = "external";
   };
 
+  monitors-reset = pkgs.writeShellApplication {
+    name = "monitors-reset";
+    runtimeInputs = with pkgs; [
+      coreutils
+      libnotify
+    ];
+    # hyprctl comes with Hyprland (system profile), already on PATH in the session.
+    text = ''
+      rm -f "${destination}"
+      hyprctl reload
+      notify-send "Monitors reset" "All screens on with their preferred mode"
+    '';
+  };
+
   settings = {
     general = {
       inherit destination;
@@ -101,7 +124,16 @@ let
   };
 in
 {
-  home.packages = [ pkgs.hyprdynamicmonitors ]; # for `hyprdynamicmonitors tui`
+  home.packages = [
+    pkgs.hyprdynamicmonitors # for `hyprdynamicmonitors tui`
+    monitors-reset
+  ];
+
+  wayland.windowManager.hyprland.settings.bind = [
+    ((import ./lib/hyprland-bind.nix { inherit lib; }).bindCall "SUPER + SHIFT + M"
+      ''hl.dsp.exec_cmd("monitors-reset")''
+    )
+  ];
 
   xdg.configFile."hyprdynamicmonitors/config.toml".source =
     (pkgs.formats.toml { }).generate "hyprdynamicmonitors.toml"

@@ -628,6 +628,7 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 | `XF86AudioPlay/Next/Prev` | media control via playerctl, sent to the last used player (playerctld) |
 | Volume / brightness / mute keys | change the value and show it in ashell's on-screen display (5% steps, volume up to 150%) |
 | `SUPER+M` | log out |
+| `SUPER+SHIFT+M` | monitor rescue: drop the generated layout and turn every screen on (use it if a screen stays dark) |
 
 - The bar is ashell (`home/bar.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pwvucontrol (volume mixer); right-clicking Bluetooth opens overskride (pairing).
 - Notifications are ashell's too: popups in the top-right corner, and the bell in the bar keeps the list (click it to see them, right-click for do not disturb). They are kept in memory until you log out.
@@ -725,8 +726,11 @@ Testing happens in **CI** (`.github/workflows/ci.yml`), on every pull request an
 2. `nix flake check`: evaluates the whole NixOS and home-manager configuration
 3. Hyprland's own config check (`Hyprland --verify-config`), once without a monitor layout and once
    for each hyprdynamicmonitors profile, with the profile filled in with example screen names
-4. `hyprdynamicmonitors validate` on the generated config
-5. the full system build, the same `nix build` the laptop runs
+4. a simulation of every monitor profile with a fake Hyprland: with only the laptop panel connected
+   (or none listed yet, as at startup) no profile switches the panel off; with an external screen,
+   each profile gives the expected layout
+5. `hyprdynamicmonitors validate` on the generated config
+6. the full system build, the same `nix build` the laptop runs
 
 Results show up on the pull request ("Checks") and under the repository's Actions tab.
 
