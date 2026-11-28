@@ -3,7 +3,7 @@
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
 - **Desktop:** Hyprland (Lua config), greetd with the animated ctOS login and lock screen (Quickshell), Waybar (bar), mako (notifications), and the Hypr tools wherever one exists: hyprlauncher (launcher), hyprpwcenter (mixer), hyprpolkitagent, hyprshutdown, hypridle/hyprpaper, all on Hyprland's own toolkit (hyprtoolkit). Ghostty and LibreWolf. The only other GTK app is satty (screenshot editor); Bluetooth, Wi-Fi, file dialogs, the PDF viewer and text editing are terminal programs
-- **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the login screen uses the same colours
+- **Theme:** one look from boot to desktop, modelled on the ctOS login screen: Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), JetBrains Mono everywhere, square corners everywhere (windows, bar, notifications, Hypr tools, GTK), Papirus icons and the Bibata cursor. bootvine, the login and lock screen and Hyprland's animations follow the same palette and style. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
 - **Editor:** Neovim (nixvim) set up for Java/Spring, Python (Django, FastAPI) and TypeScript/React/Angular. Project toolchains come from each project's devenv

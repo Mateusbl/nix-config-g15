@@ -113,6 +113,10 @@
   # off (rofi is not used; hyprlauncher is the launcher).
   stylix.targets.rofi.enable = false;
 
+  # GTK (LibreWolf's menus and dialogs, satty): square corners like the rest of the desktop
+  # (modules/nixos/stylix.nix).
+  stylix.targets.gtk.extraCss = "* { border-radius: 0; }";
+
   home.packages = with pkgs; [
     brightnessctl
     playerctl

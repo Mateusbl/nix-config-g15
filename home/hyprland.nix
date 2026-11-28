@@ -61,8 +61,9 @@
           layout = "dwindle";
         };
 
+        # Square corners, like the login screen and the rest of the desktop (modules/nixos/stylix.nix).
         decoration = {
-          rounding = 6;
+          rounding = 0;
         };
 
         # If the lock screen ever crashed, a new one may take over the lock (recovery steps in

@@ -1,5 +1,7 @@
-# System-wide theme (Stylix). Neovim, Ghostty, Waybar, mako, GTK, Hyprland borders, ... all take
-# their colours from the palette below, so changing it here re-themes everything.
+# System-wide theme (Stylix). Neovim, Ghostty, Waybar, mako, GTK, Hyprland borders, the ctOS
+# login/lock screen, ... all take their colours and fonts from here, so changing it here
+# re-themes everything. The shapes follow the ctOS login screen too: square corners everywhere
+# (Hyprland, mako, the Hypr tools, GTK in home/session.nix).
 { pkgs, ... }:
 
 let
@@ -71,14 +73,18 @@ in
       popups = 0.95;
     };
 
+    # One typeface everywhere: JetBrains Mono, the font the ctOS login screen is designed around.
+    # The terminal and editor use its fixed-width "Mono" cut, everything else (bar, notifications,
+    # launcher, GTK) the regular cut, so the whole desktop reads like the login screen. Both are
+    # Nerd Fonts, so icons work everywhere.
     fonts = {
       monospace = {
-        package = pkgs.nerd-fonts.fira-code;
-        name = "FiraCode Nerd Font Mono";
+        package = pkgs.nerd-fonts.jetbrains-mono;
+        name = "JetBrainsMono Nerd Font Mono";
       };
       sansSerif = {
-        package = pkgs.dejavu_fonts;
-        name = "DejaVu Sans";
+        package = pkgs.nerd-fonts.jetbrains-mono;
+        name = "JetBrainsMono Nerd Font";
       };
       sizes = {
         applications = 11;

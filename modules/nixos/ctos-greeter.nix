@@ -43,6 +43,7 @@ let
 
   # The real information shown instead of upstream's made-up texts.
   upper = lib.toUpper;
+  font = config.stylix.fonts.sansSerif.name; # the system font, which ctOS is designed around
   fullName = config.users.users.${username}.description;
   host = config.networking.hostName;
   release = config.system.nixos.release;
@@ -57,7 +58,7 @@ let
     <svg width="14" height="${
       toString (builtins.stringLength deviceLabel * 8 + 4)
     }" xmlns="http://www.w3.org/2000/svg">
-      <text transform="translate(3,0) rotate(90)" font-family="JetBrainsMono Nerd Font" font-size="11" letter-spacing="1" fill="${hex "base05"}">${deviceLabel}</text>
+      <text transform="translate(3,0) rotate(90)" font-family="${font}" font-size="11" letter-spacing="1" fill="${hex "base05"}">${deviceLabel}</text>
     </svg>
   '';
 
@@ -201,7 +202,7 @@ in
     # are upstream's: all of them at login, a shorter set when locking ("all", "reduced" or "none").
     environment.etc."ctos/greeter.config.json".text = builtins.toJSON {
       general = {
-        fontFamily = "JetBrainsMono Nerd Font";
+        fontFamily = font;
         animations = "all";
         monitor = ""; # empty: the screen cage shows
         exitOverride = [ ];
@@ -219,9 +220,6 @@ in
           };
       };
     };
-
-    # The font ctOS is designed around, installed system-wide so the greeter user has it too.
-    fonts.packages = [ pkgs.nerd-fonts.jetbrains-mono ];
 
     # The state file must exist: ctOS quits (one second after start) when a config file it reads
     # is missing. `f` creates it once with an empty JSON object and never overwrites it. Readable
