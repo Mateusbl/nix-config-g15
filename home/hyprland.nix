@@ -64,7 +64,111 @@
         decoration = {
           rounding = 6;
         };
+
+        # If the lock screen ever crashed, a new one may take over the lock (recovery steps in
+        # modules/nixos/ctos-greeter.nix) instead of the session staying stuck.
+        misc.allow_session_lock_restore = true;
       };
+
+      # Animations in the style of the ctOS login screen: short and mechanical, fast at the start
+      # and settling hard at the end, no bounce. Speed is in tenths of a second (3 = 0.3 s).
+      #   hl.curve(name, { type = "bezier", points = { {x1, y1}, {x2, y2} } })
+      curve = [
+        {
+          _args = [
+            "ctos" # fast out, crisp stop
+            {
+              type = "bezier";
+              points = [
+                [
+                  0.2
+                  0.9
+                ]
+                [
+                  0.1
+                  1.0
+                ]
+              ];
+            }
+          ];
+        }
+        {
+          _args = [
+            "linear"
+            {
+              type = "bezier";
+              points = [
+                [
+                  0.0
+                  0.0
+                ]
+                [
+                  1.0
+                  1.0
+                ]
+              ];
+            }
+          ];
+        }
+      ];
+      # hl.animation({ leaf, enabled, speed, bezier, style }); `enabled` is required
+      animation = [
+        # Windows grow in from 90% of their size and shrink away the same way, like the login
+        # screen's panels.
+        {
+          leaf = "windowsIn";
+          enabled = true;
+          speed = 3;
+          bezier = "ctos";
+          style = "popin 90%";
+        }
+        {
+          leaf = "windowsOut";
+          enabled = true;
+          speed = 2;
+          bezier = "linear";
+          style = "popin 90%";
+        }
+        {
+          leaf = "windowsMove";
+          enabled = true;
+          speed = 3;
+          bezier = "ctos";
+        }
+        # Bar, launcher and notifications slide in from their edge.
+        {
+          leaf = "layers";
+          enabled = true;
+          speed = 3;
+          bezier = "ctos";
+          style = "slide";
+        }
+        {
+          leaf = "fade";
+          enabled = true;
+          speed = 2;
+          bezier = "linear";
+        }
+        # The border colour switches with focus; the rotating border gradient is off.
+        {
+          leaf = "border";
+          enabled = true;
+          speed = 2;
+          bezier = "linear";
+        }
+        {
+          leaf = "borderangle";
+          enabled = false;
+        }
+        # Workspaces slide sideways (like the three-finger swipe) and fade a little.
+        {
+          leaf = "workspaces";
+          enabled = true;
+          speed = 3;
+          bezier = "ctos";
+          style = "slidefade 15%";
+        }
+      ];
 
       # hl.gesture({ fingers, direction, action }): swipe three fingers left/right on the
       # touchpad to change workspace.
@@ -138,9 +242,12 @@
           # Emoji picker: hyprlauncher's emoji search; the chosen one is copied (paste with Ctrl+V)
           (bindCall "SUPER + period" ''hl.dsp.exec_cmd("hyprlauncher -f unicode")'')
 
-          # Focus
+          # Focus: SUPER + arrows, or SUPER + H/K/J (L is lock, below)
+          (bindCall "SUPER + left" ''hl.dsp.focus({ direction = "left" })'')
+          (bindCall "SUPER + right" ''hl.dsp.focus({ direction = "right" })'')
+          (bindCall "SUPER + up" ''hl.dsp.focus({ direction = "up" })'')
+          (bindCall "SUPER + down" ''hl.dsp.focus({ direction = "down" })'')
           (bindCall "SUPER + H" ''hl.dsp.focus({ direction = "left" })'')
-          (bindCall "SUPER + L" ''hl.dsp.focus({ direction = "right" })'')
           (bindCall "SUPER + K" ''hl.dsp.focus({ direction = "up" })'')
           (bindCall "SUPER + J" ''hl.dsp.focus({ direction = "down" })'')
 
@@ -149,7 +256,8 @@
           (bindCall "SUPER + SHIFT + L" ''hl.dsp.window.move({ direction = "right" })'')
           (bindCall "SUPER + SHIFT + K" ''hl.dsp.window.move({ direction = "up" })'')
           (bindCall "SUPER + SHIFT + J" ''hl.dsp.window.move({ direction = "down" })'')
-          # Lock and power
+          # Lock (the ctOS lock screen, home/lock-idle.nix) and power
+          (bindCall "SUPER + L" ''hl.dsp.exec_cmd("loginctl lock-session")'')
           (bindCall "SUPER + Escape" ''hl.dsp.exec_cmd("loginctl lock-session")'')
           # Power menu (lock/suspend/reboot/poweroff/logout); needs an explicit choice.
           (bindCall "SUPER + SHIFT + Escape" ''hl.dsp.exec_cmd("power-menu")'')

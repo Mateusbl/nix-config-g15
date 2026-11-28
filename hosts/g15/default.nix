@@ -17,6 +17,7 @@
   ];
 
   networking.hostName = hostname;
+  my.ctosGreeter.machine = "Dell G15 5511"; # shown on the login and lock screen
 
   # Installed RAM in GiB; disko sizes the swap partition from it (RAM + 2 GiB, hosts/g15/disko.nix).
   # Only used when partitioning. The install guide (README, path B) sets it from the machine.

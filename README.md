@@ -2,7 +2,7 @@
 
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
-- **Desktop:** Hyprland (Lua config), greetd with the animated ctOS login screen (Quickshell), Waybar (bar), mako (notifications), and the Hypr tools wherever one exists: hyprlauncher (launcher), hyprpwcenter (mixer), hyprpolkitagent, hyprshutdown, hyprlock/hypridle/hyprpaper, all on Hyprland's own toolkit (hyprtoolkit). Ghostty and LibreWolf. The only other GTK app is satty (screenshot editor); Bluetooth, Wi-Fi, file dialogs, the PDF viewer and text editing are terminal programs
+- **Desktop:** Hyprland (Lua config), greetd with the animated ctOS login and lock screen (Quickshell), Waybar (bar), mako (notifications), and the Hypr tools wherever one exists: hyprlauncher (launcher), hyprpwcenter (mixer), hyprpolkitagent, hyprshutdown, hypridle/hyprpaper, all on Hyprland's own toolkit (hyprtoolkit). Ghostty and LibreWolf. The only other GTK app is satty (screenshot editor); Bluetooth, Wi-Fi, file dialogs, the PDF viewer and text editing are terminal programs
 - **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
@@ -39,7 +39,7 @@ modules/nixos/                 shared system modules, one topic per file
   users.nix                    user account, zsh, sudo-rs
 home/                          home-manager modules, one topic per file
   shell.nix  git.nix  cli.nix  session.nix  hyprland.nix
-  lock-idle.nix                lock screen (hyprlock) and idle behaviour (hypridle)
+  lock-idle.nix                locking (ctOS lock screen, hyprlock as fallback) and idle behaviour (hypridle)
   bar.nix                      Waybar (bar) and mako (notifications)
   launcher.nix                 hyprlauncher, and the colours/fonts of every hyprtoolkit app
   lib/hyprland-bind.nix        helpers for Hyprland key bindings (used by hyprland.nix, desktop-extras.nix)
@@ -650,7 +650,8 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 | `ALT+Tab` | window picker (hyprlauncher), most recently used first: `ALT+Tab` then `Enter` jumps back to the previous window; type to filter, arrows to move |
 | `SUPER+1`…`SUPER+0` | workspaces 1–10; with `SHIFT`, move the window there |
 | three-finger swipe left/right | previous / next workspace |
-| `SUPER+Escape` | lock |
+| `SUPER+L` / `SUPER+Escape` | lock (the ctOS lock screen) |
+| `SUPER` + arrows, or `SUPER+H/J/K` | focus the window left / down / up / right; with `SHIFT` (and `H/J/K/L`), move it |
 | `SUPER+SHIFT+Escape` | power menu (hyprlauncher): lock, suspend, hibernate, reboot, poweroff, logout. Nothing happens unless you pick one; reboot, poweroff and logout close every app first (hyprshutdown) |
 | `Print` | region screenshot to the clipboard |
 | `Shift+Print` / `Ctrl+Print` | region / full screen to `~/Pictures/Screenshots`, with a notification |
@@ -671,9 +672,10 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
   - `POWER`: the power menu
 - Notifications are mako's: popups in the top-right corner, gone after 5 seconds (click one to dismiss it).
 - Bluetooth is on from boot; turn it off in bluetui when you don't need it.
-- Login: greetd runs the ctOS greeter (`modules/nixos/ctos-greeter.nix`), an animated "terminal" login inspired by Watch Dogs' ctOS, in the palette colours: it types out a boot sequence, then asks for the password of the first user (`mateus`) and starts Hyprland. Instead of a password you can type commands: `help`, `users`, `desktops`, `chusr <name>`, `chdesk <name>`. It runs in cage, a small kiosk compositor, with Quickshell from nixpkgs; the source is pinned to one commit, so updating it means changing `rev` and `hash` in that file. If it ever fails to start, `Ctrl+Alt+F2` gives a text login, and `my.ctosGreeter.enable = false;` brings back tuigreet, a text login prompt. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
+- Login: greetd runs the ctOS greeter (`modules/nixos/ctos-greeter.nix`), an animated "terminal" login inspired by Watch Dogs' ctOS, in the palette colours, with real information instead of upstream's made-up texts (your name, the machine, NixOS and kernel versions, timezone, NixOS logo): it types out a boot sequence, then asks for the password of the first user (`mateus`) and starts Hyprland. Instead of a password you can type commands: `help`, `users`, `desktops`, `chusr <name>`, `chdesk <name>`. It runs in cage, a small kiosk compositor, with Quickshell from nixpkgs; the source is pinned to one commit, so updating it means changing `rev` and `hash` in that file. If it ever fails to start, `Ctrl+Alt+F2` gives a text login, and `my.ctosGreeter.enable = false;` brings back tuigreet, a text login prompt. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
 - Browser: LibreWolf (Firefox with privacy and security settings on by default, uBlock Origin included). It deletes cookies and history when it closes; change that in its Settings → Privacy & Security if you want to stay logged in.
-- The lock screen (hyprlock, `SUPER+Escape`) shows the time, the date, a greeting and the battery level over the wallpaper, in the palette colours (`home/lock-idle.nix`).
+- The lock screen is ctOS too (`SUPER+L`, `SUPER+Escape`, after 10 idle minutes and before suspend): `ctos-lock`, run by hypridle (`home/lock-idle.nix`), with shorter animations than at login. If it ever froze: `Ctrl+Alt+F2`, log in, run `hyprctl --instance 0 dispatch 'hl.dsp.exec_cmd("ctos-lock")'` (Hyprland lets a new lock screen replace a crashed one), then `Ctrl+Alt+F1`. With `my.ctosGreeter.enable = false;` hyprlock is the lock screen again.
+- Hyprland's own animations match it (`home/hyprland.nix`): short and mechanical, no bounce. Windows grow in from 90% and shrink away, the bar, launcher and notifications slide in from their edge, workspaces slide sideways.
 - The launcher is hyprlauncher (`SUPER+D`, `home/launcher.nix`): apps, plus emoji after `.`, maths after `=` and fonts after `'`. The power menu, the clipboard picker and the window picker use it too. The Hypr tools (launcher, mixer, password prompts, shutdown screen, `hyprsysteminfo`) share one look set from the Stylix palette.
 - Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
 - Monitors are arranged by hyprdynamicmonitors (`home/monitors.nix`), which switches the layout when you plug in a screen or close the lid: laptop only (panel at 120 Hz), docked (external screen on the left at its highest refresh rate, panel on the right), docked with the lid closed (external screen only). `hyprdynamicmonitors tui` shows the screens and which profile is active; put lasting changes into `home/monitors.nix`.
