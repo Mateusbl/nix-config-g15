@@ -19,6 +19,15 @@
   # for it (the boot.initrd.systemd.enable option no longer exists).
   services.bootvine.enable = true;
 
-  # Optional tuning goes in services.bootvine.settings (TOML), for example:
-  # services.bootvine.settings.timing.keep-final-frame-for = "500ms";
+  # Colours are names from the console's 16-colour palette, which Stylix sets from the system
+  # palette (modules/nixos/stylix.nix), so "blue" is the desktop's accent. bootvine's own
+  # highlights are yellow; these make "in progress" blue like everything else, while green
+  # (finished) and red (failed) keep their meaning.
+  services.bootvine.settings.colors = {
+    tree.current-stage = "blue";
+    tree.running-marker = "blue";
+    timeline.running = "blue";
+    footer.running = "blue";
+    password.frame = "blue";
+  };
 }

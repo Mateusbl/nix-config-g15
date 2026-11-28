@@ -43,8 +43,9 @@ in
       font_family_monospace = config.stylix.fonts.monospace.name;
       font_size = config.stylix.fonts.sizes.applications;
       icon_theme = config.stylix.icons.dark;
-      rounding_large = 8;
-      rounding_small = 4;
+      # Square, like the rest of the desktop (modules/nixos/stylix.nix).
+      rounding_large = 0;
+      rounding_small = 0;
     };
   };
 }

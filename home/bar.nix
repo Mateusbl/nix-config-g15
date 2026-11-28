@@ -158,7 +158,7 @@ in
       anchor = "top-right";
       default-timeout = 5000; # milliseconds
       max-history = 20;
-      border-radius = 8;
+      border-radius = 0; # square, like the rest of the desktop
       "mode=do-not-disturb".invisible = 1;
       "mode=do-not-disturb urgency=critical".invisible = 0;
       # The volume/brightness overlay (osd, desktop-scripts.nix): short and centred at the bottom.

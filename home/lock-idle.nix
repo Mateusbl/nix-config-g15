@@ -4,10 +4,18 @@
 # The lock screen is ctOS (`ctos-lock`, modules/nixos/ctos-greeter.nix), the same program as the
 # login screen. hyprlock below is the fallback, used only when `my.ctosGreeter.enable = false`;
 # Stylix sets its background and colours, the labels add the time, date, a greeting and battery.
-{ osConfig, pkgs, ... }:
+{
+  config,
+  osConfig,
+  pkgs,
+  ...
+}:
 
 let
   ctos = osConfig.my.ctosGreeter.enable;
+  # Fonts and colours from Stylix, so the fallback matches the rest of the desktop.
+  inherit (config.stylix) fonts;
+  c = config.lib.stylix.colors;
   hyprlock = pkgs.writeShellScript "hypr-lock" "${pkgs.procps}/bin/pgrep -x hyprlock || exec ${pkgs.hyprlock}/bin/hyprlock";
 in
 {
@@ -18,8 +26,8 @@ in
       {
         text = "$TIME12";
         font_size = 90;
-        font_family = "FiraCode Nerd Font Mono";
-        color = "rgb(c9d8f7)";
+        font_family = fonts.monospace.name;
+        color = "rgb(${c.base05})";
         position = "0, 220";
         halign = "center";
         valign = "center";
@@ -28,8 +36,8 @@ in
       {
         text = ''cmd[update:6000] date +"%A, %d %B"'';
         font_size = 22;
-        font_family = "DejaVu Sans";
-        color = "rgb(7d93c6)";
+        font_family = fonts.sansSerif.name;
+        color = "rgb(${c.base04})";
         position = "0, 120";
         halign = "center";
         valign = "center";
@@ -38,8 +46,8 @@ in
       {
         text = "Hi, $USER";
         font_size = 18;
-        font_family = "DejaVu Sans";
-        color = "rgb(6f9cf5)";
+        font_family = fonts.sansSerif.name;
+        color = "rgb(${c.base0D})";
         position = "0, -110";
         halign = "center";
         valign = "center";
@@ -48,8 +56,8 @@ in
       {
         text = ''cmd[update:30000] echo "$(cat /sys/class/power_supply/BAT0/capacity)%"'';
         font_size = 14;
-        font_family = "DejaVu Sans";
-        color = "rgb(c9d8f7)";
+        font_family = fonts.sansSerif.name;
+        color = "rgb(${c.base05})";
         position = "-20, -20";
         halign = "right";
         valign = "Top";
