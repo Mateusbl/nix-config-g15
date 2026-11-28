@@ -2,7 +2,7 @@
 
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
-- **Desktop:** Hyprland (Lua config), greetd with tuigreet (login), ashell (bar, notifications, volume/brightness overlay), fuzzel (launcher), hyprlock/hypridle, Ghostty and LibreWolf. No other GTK or Qt apps: the mixer, Bluetooth, file dialogs and text editing are terminal programs
+- **Desktop:** Hyprland (Lua config), greetd with tuigreet (login), ashell (bar, notifications, volume/brightness overlay), fuzzel (launcher), hyprlock/hypridle, Ghostty and LibreWolf. No other GTK or Qt apps: the mixer, Bluetooth, file dialogs, PDF viewer and text editing are terminal programs, and the Hyprland tools (portal, password prompt) use Hyprland's own hyprtoolkit
 - **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
@@ -45,7 +45,7 @@ home/                          home-manager modules, one topic per file
   yazi.nix                     Yazi file manager
   identity.nix                 name + email, shared by git.nix and jujutsu.nix
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
-  desktop-scripts.nix          power menu, screenshots, clipboard and emoji pickers
+  desktop-scripts.nix          power menu, screenshots, window/clipboard/emoji pickers
   desktop-extras.nix           optional: night light, colour picker, screen recorder
   monitors.nix                 hyprdynamicmonitors: monitor layout per connected screens and lid state
   battery-warning.nix          notification at 20% and 10% battery
@@ -600,9 +600,9 @@ tutorials match.
 - **Start it:** `y` in zsh (cds to Yazi's last folder when you quit with `q`), or
   `SUPER+E` (opens it in Ghostty). It is the only file manager.
 - **Openers:** text and code → `$EDITOR` (Neovim), images → imv, audio/video → mpv, PDF →
-  LibreWolf's viewer, archives → Yazi's extract (7zip), anything else → `xdg-open`. These are
-  also the desktop defaults. Directories open in Yazi and `text/plain` in Neovim, each in a
-  Ghostty window.
+  tdf (in the terminal), archives → Yazi's extract (7zip), anything else → `xdg-open`. These are
+  also the desktop defaults. Directories open in Yazi, `text/plain` in Neovim and PDFs in tdf,
+  each in a Ghostty window.
 - **File dialogs:** when an app asks to open or save a file (LibreWolf's upload or download
   dialog), Yazi opens in a floating window instead of a GTK dialog
   (xdg-desktop-portal-termfilechooser). Pick a file with `Enter` (several: `Space` first, then
@@ -620,7 +620,7 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 
 | Key | Does |
 | --- | --- |
-| `ALT+Tab` / `ALT+SHIFT+Tab` | focus the next / previous window on the current workspace |
+| `ALT+Tab` | window picker (fuzzel), most recently used first: `ALT+Tab` then `Enter` jumps back to the previous window; type to filter, `Tab`/arrows to move |
 | `SUPER+1`…`SUPER+0` | workspaces 1–10; with `SHIFT`, move the window there |
 | three-finger swipe left/right | previous / next workspace |
 | `SUPER+Escape` | lock |
@@ -644,7 +644,8 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 - Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
 - Monitors are arranged by hyprdynamicmonitors (`home/monitors.nix`), which switches the layout when you plug in a screen or close the lid: laptop only (panel at 120 Hz), docked (external screen on the left at its highest refresh rate, panel on the right), docked with the lid closed (external screen only). `hyprdynamicmonitors tui` shows the screens and which profile is active; put lasting changes into `home/monitors.nix`.
 - Small utility windows float centred instead of tiling: the mixer, Bluetooth and file dialogs, all started as `ghostty --class=tui.<name>` (`window_rule` in `home/hyprland.nix`).
-- There is no graphical password prompt (polkit agent). Wi-Fi, Bluetooth, power profiles, mounting USB drives and suspend/reboot need no password; `sudo`, `pkexec` and `systemctl` ask in the terminal.
+- Password prompts for apps that need administrator rights come from hyprpolkitagent (hyprtoolkit, no GTK/Qt).
+- Portals: Hyprland's own portal handles screenshots, screen sharing and global shortcuts (assigned by name in `modules/nixos/desktop.nix`); open/save dialogs are Yazi.
 - No Qt theme and no `nvidia-settings`: nothing installed uses Qt, and `nvidia-smi` shows the GPU's state in a terminal.
 - Optional, off by default, in `home/desktop-extras.nix`:
   - `my.desktop.nightLight.enable`: hyprsunset, warmer colours from 20:00.

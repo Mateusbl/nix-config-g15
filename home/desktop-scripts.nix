@@ -56,6 +56,28 @@ let
     '';
   };
 
+  # ALT+Tab: pick a window with fuzzel. Windows are listed most recently used first, starting
+  # with the one before the current window, so ALT+Tab then Enter jumps back to it. Type to
+  # filter, Tab / arrows to move, Enter to switch, Escape to cancel. All workspaces are listed.
+  window-pick = pkgs.writeShellApplication {
+    name = "window-pick";
+    runtimeInputs = with pkgs; [
+      jq
+      fuzzel
+    ];
+    # hyprctl comes with Hyprland (system profile), already on PATH in the session.
+    text = ''
+      windows=$(hyprctl clients -j | jq -r '
+        map(select(.mapped)) | sort_by(.focusHistoryID) | (.[1:] + .[:1]) | .[]
+        | "\(.address)\t\(.class)  \(.title)"')
+      [ -n "$windows" ] || exit 0
+      address=$(printf '%s\n' "$windows" |
+        fuzzel --dmenu --only-match --with-nth=2 --match-nth=2 --accept-nth=1 \
+          --width 70 --prompt "Window  ") || exit 0
+      hyprctl dispatch "hl.dsp.focus({ window = \"address:$address\" })"
+    '';
+  };
+
   # SUPER+SHIFT+V: pick an entry from the clipboard history and copy it again.
   clipboard-pick = pkgs.writeShellApplication {
     name = "clipboard-pick";
@@ -91,6 +113,7 @@ in
     screenshot
     clipboard-pick
     emoji-pick
+    window-pick
   ];
 
   # XDG user directories (Pictures, Downloads, ...), created on activation, plus a

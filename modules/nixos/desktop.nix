@@ -48,7 +48,15 @@
     pkgs.oo7-portal
     pkgs.xdg-desktop-portal-termfilechooser
   ];
-  xdg.portal.config.hyprland."org.freedesktop.impl.portal.FileChooser" = [ "termfilechooser" ];
+  # Every interface Hyprland's portal implements is assigned to it by name, so no other portal
+  # can take one over. Its screen-share picker is drawn with hyprtoolkit (no GTK, no Qt).
+  xdg.portal.config.hyprland = {
+    "org.freedesktop.impl.portal.Screenshot" = [ "hyprland" ];
+    "org.freedesktop.impl.portal.ScreenCast" = [ "hyprland" ];
+    "org.freedesktop.impl.portal.GlobalShortcuts" = [ "hyprland" ];
+    "org.freedesktop.impl.portal.InputCapture" = [ "hyprland" ];
+    "org.freedesktop.impl.portal.FileChooser" = [ "termfilechooser" ];
+  };
 
   # Removable drives: Yazi's mount plugin (`M`) mounts and ejects them through udisks.
   services.udisks2.enable = true;

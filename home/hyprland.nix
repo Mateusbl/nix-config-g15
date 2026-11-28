@@ -107,10 +107,8 @@
           (bindCall "SUPER + V" ''hl.dsp.window.float({ action = "toggle" })'')
           (bindCall "SUPER + F" "hl.dsp.window.fullscreen()")
 
-          # Alt-tab: Hyprland's own window cycling, no separate switcher program. ALT+Tab focuses
-          # the next window on the current workspace, ALT+SHIFT+Tab the previous one.
-          (bindCall "ALT + Tab" "hl.dsp.window.cycle_next()")
-          (bindCall "ALT + SHIFT + Tab" "hl.dsp.window.cycle_next({ next = false })")
+          # Alt-tab: a fuzzel list of the windows, most recently used first (desktop-scripts.nix)
+          (bindCall "ALT + Tab" ''hl.dsp.exec_cmd("window-pick")'')
 
           # Screenshots: region to clipboard; Shift = region to file; Ctrl = full screen to file
           (bindCall "Print" ''hl.dsp.exec_cmd("grim -g \"$(slurp)\" - | wl-copy")'')

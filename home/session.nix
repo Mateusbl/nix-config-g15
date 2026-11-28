@@ -3,7 +3,7 @@
 # bar.nix.
 #
 # No GTK or Qt apps beyond the terminal and the browser: small tools (mixer, Bluetooth, file
-# dialogs, text editor) are terminal programs opened in a Ghostty window. The mixer, Bluetooth
+# dialogs, text editor, PDF viewer) are terminal programs opened in a Ghostty window. The mixer, Bluetooth
 # and file-dialog windows get an app id starting with `tui.` (`ghostty --class=tui.<name>`), so
 # one rule in hyprland.nix floats them all.
 { config, pkgs, ... }:
@@ -12,12 +12,12 @@
   # Session services: systemd user services started with the graphical session
   # (hyprland-session.target, see home/hyprland.nix). Stylix themes them. Notifications and the
   # volume/brightness overlay are ashell's (bar.nix), so there is no separate notification daemon.
-  # No graphical polkit agent (hyprpolkitagent is Qt, the others GTK). Everyday actions need no
-  # password for the logged-in user (Wi-Fi, Bluetooth, power profiles, mounting USB drives,
-  # suspend/reboot); `sudo`, `pkexec` and `systemctl` ask in the terminal they run in.
+  # Password prompts for apps that need administrator rights. hyprpolkitagent is drawn with
+  # hyprtoolkit, Hyprland's own small toolkit (no GTK, no Qt), like Hyprland's portal.
+  services.hyprpolkitagent.enable = true;
   services.hyprpaper.enable = true; # draws the Stylix wallpaper
 
-  # Default apps: Yazi for folders, Neovim for plain text, both in a Ghostty window.
+  # Default apps: Yazi for folders, Neovim for plain text, tdf for PDFs, each in a Ghostty window.
   # They are terminal programs, so "open folder" / "open file" requests from other apps (a
   # browser's "show in folder") need a desktop entry that starts them inside a terminal.
   xdg.desktopEntries.yazi-ghostty = {
@@ -29,6 +29,17 @@
     categories = [
       "System"
       "FileManager"
+    ];
+  };
+  xdg.desktopEntries.tdf-ghostty = {
+    name = "tdf";
+    genericName = "PDF Viewer";
+    icon = "application-pdf";
+    exec = "ghostty -e tdf %f";
+    mimeType = [ "application/pdf" ];
+    categories = [
+      "Office"
+      "Viewer"
     ];
   };
   xdg.desktopEntries.nvim-ghostty = {

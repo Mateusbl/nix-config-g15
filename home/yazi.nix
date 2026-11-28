@@ -72,9 +72,9 @@
         ];
         pdf = [
           {
-            run = "librewolf %s1";
-            desc = "librewolf";
-            orphan = true;
+            run = "tdf %s1";
+            desc = "tdf";
+            block = true; # a terminal app: it takes over Yazi's window until you quit it
           }
         ];
       };
@@ -139,11 +139,13 @@
   home.packages = with pkgs; [
     imv # images
     mpv # audio and video
-    # PDFs open in LibreWolf (its built-in viewer), so there is no separate PDF app.
+    # PDF viewer in the terminal: pages drawn as images (kitty graphics, native in Ghostty).
+    # `q` quits, arrows / `j` `k` turn pages, `/` searches.
+    tdf
   ];
 
-  # Default apps for xdg-open. Directories -> Yazi and text/plain -> Neovim are set in
-  # home/session.nix.
+  # Default apps for xdg-open. Directories -> Yazi, text/plain -> Neovim and the PDF viewer's
+  # desktop entry are set in home/session.nix.
   xdg.mimeApps.defaultApplications =
     let
       imv = "imv.desktop";
@@ -167,6 +169,6 @@
       "audio/ogg" = mpv;
       "audio/x-wav" = mpv;
       "audio/mp4" = mpv;
-      "application/pdf" = "librewolf.desktop";
+      "application/pdf" = "tdf-ghostty.desktop"; # home/session.nix
     };
 }
