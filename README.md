@@ -174,7 +174,7 @@ Every step from a blank USB stick to the finished desktop:
 
 4. **Get the repository.** The first command opens a shell that has `git` and `nom`
    (nix-output-monitor, which shows the install's build progress in step 7); stay in it until the
-   end.
+   end: the `system` variable of step 7 also lives only in this shell.
 
    ```bash
    nix-shell -p git nix-output-monitor
@@ -227,21 +227,37 @@ Every step from a blank USB stick to the finished desktop:
    findmnt -R /mnt
    ```
 
-7. **Install.** `nh` cannot install onto a new disk, so this step uses NixOS's own installer. It
-   downloads the system and compiles bootvine and lanzaboote, so it takes a while. Its build output
-   goes through `nom`, the same progress tree `nh` shows:
+7. **Install.** `nh` cannot install onto a new disk, so this step uses NixOS's own installer, in
+   two parts: first the system is built onto the new disk with `nom` showing the progress tree
+   (the same one `nh` shows), then `nixos-install` installs it and the boot loader. The build
+   downloads the system and compiles bootvine and lanzaboote, so it takes a while.
 
    ```bash
-   sudo nixos-install --flake .#g15 --no-root-passwd --log-format internal-json -v |& nom --json
+   sudo nix --experimental-features 'nix-command flakes' build .#nixosConfigurations.g15.config.system.build.toplevel --store /mnt --eval-store auto --no-link --log-format internal-json -v |& nom --json
    ```
 
+   ```bash
+   system=$(nix --experimental-features 'nix-command flakes' eval --raw .#nixosConfigurations.g15.config.system.build.toplevel.outPath)
+   ```
+
+   ```bash
+   sudo nixos-install --system "$system" --no-root-passwd
+   ```
+
+   - `--store /mnt` puts the built system on the new disk; the USB stick's own store lives in
+     RAM and is too small for it.
+   - `--eval-store auto` keeps the build recipes (`.drv` files) in the USB stick's store, where
+     `nom` can read them. (Piping `nixos-install` itself into `nom` works too, but then the
+     recipes are only on `/mnt` and `nom` prints `DerivationReadError … does not exist` all the
+     way through.)
    - `--log-format internal-json -v` makes Nix print machine-readable progress, which
      `nom --json` draws as a tree. `|&` sends both output streams to `nom`.
-   - `--no-root-passwd` skips the root password prompt at the end, which would be hidden behind
-     `nom`. No root password is needed: your user is an admin through the `wheel` group, and
-     step 8 sets its password.
-   - Without `nom`, plain `sudo nixos-install --flake .#g15` works too (it then asks for a root
-     password at the end).
+   - The second command looks up the path of what was just built; `nixos-install --system`
+     installs exactly that, without building again.
+   - `--no-root-passwd`: no root password is needed. Your user is an admin through the `wheel`
+     group, and step 8 sets its password.
+   - Without `nom`, plain `sudo nixos-install --flake .#g15` does all of this in one step (it
+     then asks for a root password at the end).
 
 8. **Set your own password.** The config sets none on purpose, and without one you cannot log in:
 
