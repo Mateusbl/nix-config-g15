@@ -1,6 +1,6 @@
 # Rules for this repository
 
-NixOS flake for a Dell G15: Hyprland (session services via home-manager, no UWSM), greetd, Stylix, home-manager as a NixOS module.
+NixOS flake for a Dell G15: Hyprland (session services via home-manager, no UWSM), Waybar + Hypr tools, greetd, Stylix, home-manager as a NixOS module.
 Layout: `flake.nix`, `hosts/g15`, `modules/nixos/*`, `home/*`.
 
 - No AI tools: never install AI assistants, AI editor plugins or AI CLIs (Claude Code, claudecode.nvim, Copilot, codecompanion, Ollama, ...). Programs that merely ship AI features (a browser or editor with an AI panel) are fine: don't remove them for that reason.
@@ -8,7 +8,7 @@ Layout: `flake.nix`, `hosts/g15`, `modules/nixos/*`, `home/*`.
 - Only nixpkgs. No new flake inputs or substituters without asking. Allowed by the owner: the `bootvine` flake (codeberg) and the `lanzaboote` flake (Secure Boot), both compiled locally; its Cachix and every other binary cache beyond cache.nixos.org stay unused.
 - Never install or enable: nix-ld; gh or similar imperative CLIs; FHS shims (vscode-fhs, buildFHSEnv wrappers, steam-run, appimage-run, Flatpak); Mason or any runtime downloader (sdkman, `npm -g`, `pip --user`, `cargo install`, `go install`, `ya pkg`, `:TSInstall`). Only exception: `programs.steam`. If a task seems to need one of these, ask.
 - Neovim is configured only through nixvim (`home/editor/neovim`). Project toolchains (JDK, Maven/Gradle, jdtls, Python, debugpy, pyright/ruff, Node, tsserver, eslint/prettier, Tailwind LS, debug adapters, test runners) come from each project's devenv, never from the editor config. Editor-owned: UI, keymaps, plugins, generic wiring and language-agnostic tools (nil, nixfmt, lua-language-server, stylua, bash-language-server, shellcheck, shfmt, YAML/JSON/TOML/Markdown/Docker servers).
-- No GTK or Qt apps beyond the terminal (Ghostty) and the browser (LibreWolf), both kept by the owner's choice, plus satty (screenshot editor; drawing needs a window): prefer terminal programs (in `ghostty --class=tui.<name>`, which floats) or Wayland-native tools without a toolkit (fuzzel, ashell, hyprtoolkit-based Hyprland tools). Ask before adding one.
+- No GTK or Qt apps beyond the terminal (Ghostty) and the browser (LibreWolf), both kept by the owner's choice, plus Waybar (the owner's bar) and satty (screenshot editor; drawing needs a window). Use a Hypr-ecosystem tool (hyprtoolkit) wherever one exists, otherwise a terminal program (in `ghostty --class=tui.<name>`, which floats) or a Wayland-native tool without a toolkit (mako). Ask before adding a GTK/Qt one.
 - The Secret Service is oo7 only. Version control is jj + git over SSH; no gh.
 - Don't touch hardware, nvidia or boot modules unless asked.
 - Anything needing the owner's decision goes in `docs/questions.md`; continue with the safest default.

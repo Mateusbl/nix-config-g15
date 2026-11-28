@@ -1,17 +1,16 @@
-# Desktop session pieces: wallpaper, default apps, terminal, launcher, clipboard, media keys,
-# browser, file dialogs. The lock screen and idle behaviour are in lock-idle.nix, the bar in
-# bar.nix.
+# Desktop session pieces: wallpaper, default apps, terminal, clipboard, media keys, browser,
+# file dialogs. The lock screen and idle behaviour are in lock-idle.nix, the bar and
+# notifications in bar.nix, the launcher in launcher.nix.
 #
-# No GTK or Qt apps beyond the terminal and the browser: small tools (mixer, Bluetooth, file
-# dialogs, text editor, PDF viewer) are terminal programs opened in a Ghostty window. The mixer, Bluetooth
-# and file-dialog windows get an app id starting with `tui.` (`ghostty --class=tui.<name>`), so
-# one rule in hyprland.nix floats them all.
+# Apps are Hypr tools where one exists (hyprtoolkit: mixer, launcher, password prompts, ...) and
+# terminal programs otherwise (Bluetooth, Wi-Fi, file dialogs, text editor, PDF viewer), opened
+# in a Ghostty window. The terminal ones get an app id starting with `tui.`
+# (`ghostty --class=tui.<name>`), so one rule in hyprland.nix floats them all.
 { config, pkgs, ... }:
 
 {
   # Session services: systemd user services started with the graphical session
-  # (hyprland-session.target, see home/hyprland.nix). Stylix themes them. Notifications and the
-  # volume/brightness overlay are ashell's (bar.nix), so there is no separate notification daemon.
+  # (hyprland-session.target, see home/hyprland.nix). Stylix themes them.
   # Password prompts for apps that need administrator rights. hyprpolkitagent is drawn with
   # hyprtoolkit, Hyprland's own small toolkit (no GTK, no Qt), like Hyprland's portal.
   services.hyprpolkitagent.enable = true;
@@ -76,22 +75,8 @@
     };
   };
 
-  # Launcher: fuzzel. Wayland-native, starts instantly, and remembers what you launch most.
-  # Stylix sets its colours and font; icons come from the icon theme in modules/nixos/stylix.nix.
-  # It is also the menu behind power-menu and clipboard-pick (home/desktop-scripts.nix).
-  programs.fuzzel = {
-    enable = true;
-    settings.main = {
-      terminal = "ghostty -e"; # for entries that need a terminal (btop, yazi, ...)
-      layer = "overlay"; # also shown above fullscreen windows
-      lines = 12;
-      width = 40;
-    };
-    settings.border.radius = 8;
-  };
-
   # Clipboard history: a wl-paste watcher (systemd user service, started with the graphical
-  # session like hyprpaper/ashell). SUPER+SHIFT+V picks from it (clipboard-pick).
+  # session like hyprpaper and Waybar). SUPER+SHIFT+V picks from it (clipboard-pick).
   services.cliphist.enable = true;
 
   # Media keys: playerctl talks to any MPRIS player (mpv, LibreWolf, Spotify, ...).
@@ -125,16 +110,18 @@
 
   # Stylix themes every program it knows by default, including ones that are not installed. Its
   # rofi theme sets an option home-manager has renamed, which only produces a warning, so it is
-  # off (rofi is not used; fuzzel is the launcher).
+  # off (rofi is not used; hyprlauncher is the launcher).
   stylix.targets.rofi.enable = false;
 
   home.packages = with pkgs; [
     brightnessctl
     playerctl
-    # Volume mixer made for PipeWire: outputs, inputs and per-app volume. Right-click the speaker
-    # in the bar's settings panel.
-    wiremix
-    # Bluetooth: scan, pair, connect, trust. Right-click the panel's Bluetooth button.
+    # Volume mixer (Hypr tool, PipeWire): outputs, inputs and per-app volume. Click the speaker
+    # in the bar.
+    hyprpwcenter
+    # System information window (Hypr tool): CPU, GPU, memory, versions. From the launcher.
+    hyprsysteminfo
+    # Bluetooth: scan, pair, connect, trust (no Hypr tool exists). Click BT in the bar.
     bluetui
     wl-clipboard
     grim

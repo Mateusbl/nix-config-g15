@@ -7,6 +7,7 @@
     ./session.nix
     ./lock-idle.nix
     ./bar.nix
+    ./launcher.nix
     ./hyprland.nix
     ./monitors.nix
     ./editor/neovim # nixvim, split into one file per topic

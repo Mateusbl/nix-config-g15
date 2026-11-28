@@ -2,7 +2,7 @@
 
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
-- **Desktop:** Hyprland (Lua config), greetd with tuigreet (login), ashell (bar, notifications, volume/brightness overlay), fuzzel (launcher), hyprlock/hypridle, Ghostty and LibreWolf. No other GTK or Qt apps except satty (screenshot editor): the mixer, Bluetooth, file dialogs, PDF viewer and text editing are terminal programs, and the Hyprland tools (portal, password prompt) use Hyprland's own hyprtoolkit
+- **Desktop:** Hyprland (Lua config), greetd with tuigreet (login), Waybar (bar), mako (notifications), and the Hypr tools wherever one exists: hyprlauncher (launcher), hyprpwcenter (mixer), hyprpolkitagent, hyprshutdown, hyprlock/hypridle/hyprpaper, all on Hyprland's own toolkit (hyprtoolkit). Ghostty and LibreWolf. The only other GTK app is satty (screenshot editor); Bluetooth, Wi-Fi, file dialogs, the PDF viewer and text editing are terminal programs
 - **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
@@ -39,13 +39,14 @@ modules/nixos/                 shared system modules, one topic per file
 home/                          home-manager modules, one topic per file
   shell.nix  git.nix  cli.nix  session.nix  hyprland.nix
   lock-idle.nix                lock screen (hyprlock) and idle behaviour (hypridle)
-  bar.nix                      ashell: bar, notifications, volume/brightness overlay
+  bar.nix                      Waybar (bar) and mako (notifications)
+  launcher.nix                 hyprlauncher, and the colours/fonts of every hyprtoolkit app
   lib/hyprland-bind.nix        helpers for Hyprland key bindings (used by hyprland.nix, desktop-extras.nix)
   editor/neovim/               nixvim, one file per topic (see the Editor section)
   yazi.nix                     Yazi file manager
   identity.nix                 name + email, shared by git.nix and jujutsu.nix
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
-  desktop-scripts.nix          power menu, screenshots (+ editor), window/clipboard/emoji pickers
+  desktop-scripts.nix          power menu, volume/brightness overlay, screenshots (+ editor), window/clipboard pickers
   desktop-extras.nix           optional: night light, colour picker, screen recorder
   monitors.nix                 hyprdynamicmonitors: monitor layout per connected screens and lid state
   battery-warning.nix          notification at 20% and 10% battery
@@ -447,7 +448,7 @@ Nothing is throttled to save battery: the panel stays at 120 Hz and Wi-Fi power 
 
 `modules/nixos/oom.nix` runs earlyoom. When less than 10% of RAM is available and less than 20% of swap
 is free, it ends the biggest process (SIGTERM, then SIGKILL at half those values) instead of letting the
-desktop freeze. It avoids the session (Hyprland, ashell, PipeWire, oo7, ...), prefers browser tab
+desktop freeze. It avoids the session (Hyprland, Waybar, mako, PipeWire, oo7, ...), prefers browser tab
 processes, and sends a desktop notification naming what it killed.
 
 ## Disks (disko)
@@ -645,31 +646,37 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 
 | Key | Does |
 | --- | --- |
-| `ALT+Tab` | window picker (fuzzel), most recently used first: `ALT+Tab` then `Enter` jumps back to the previous window; type to filter, `Tab`/arrows to move |
+| `ALT+Tab` | window picker (hyprlauncher), most recently used first: `ALT+Tab` then `Enter` jumps back to the previous window; type to filter, arrows to move |
 | `SUPER+1`…`SUPER+0` | workspaces 1–10; with `SHIFT`, move the window there |
 | three-finger swipe left/right | previous / next workspace |
 | `SUPER+Escape` | lock |
-| `SUPER+SHIFT+Escape` | power menu (fuzzel): lock, suspend, hibernate, reboot, poweroff, logout. Nothing happens unless you pick one |
+| `SUPER+SHIFT+Escape` | power menu (hyprlauncher): lock, suspend, hibernate, reboot, poweroff, logout. Nothing happens unless you pick one; reboot, poweroff and logout close every app first (hyprshutdown) |
 | `Print` | region screenshot to the clipboard |
 | `Shift+Print` / `Ctrl+Print` | region / full screen to `~/Pictures/Screenshots`, with a notification |
 | `SUPER+Print` | region opened in satty to draw arrows, text or blur; `Ctrl+S` saves, `Ctrl+C` copies |
 | `SUPER+SHIFT+V` | clipboard history (cliphist, started with the session) |
-| `SUPER+.` | emoji picker (fuzzel): types the emoji and copies it |
+| `SUPER+.` | emoji picker (hyprlauncher): copies the emoji; paste it with `Ctrl+V` |
 | `XF86AudioPlay/Next/Prev` | media control via playerctl, sent to the last used player (playerctld) |
-| Volume / brightness / mute keys | change the value and show it in ashell's on-screen display (5% steps, volume up to 150%) |
-| `SUPER+M` | log out |
+| Volume / brightness / mute keys | change the value and show it in a small notification with a bar, bottom centre (5% steps, volume up to 150%) |
+| `SUPER+M` | log out (apps are closed first, so they can save) |
 | `SUPER+SHIFT+M` | monitor rescue: drop the generated layout and turn every screen on (use it if a screen stays dark) |
 
-- The bar is ashell (`home/bar.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens wiremix (volume mixer, per-app volume); right-clicking Bluetooth opens bluetui (scan, pair, connect). Both are terminal apps in a floating window.
-- Notifications are ashell's too: popups in the top-right corner, and the bell in the bar keeps the list (click it to see them, right-click for do not disturb). They are kept in memory until you log out.
-- Wi-Fi and Bluetooth are handled in that panel; there are no separate tray applets. Bluetooth is on from boot; turn it off there when you don't need it. For VPNs or editing a connection use `nmtui` in a terminal.
+- The bar is Waybar (`home/bar.nix`): workspaces and window title on the left, the clock in the middle (hover for a calendar), and on the right CPU, memory, temperature, volume, brightness, Wi-Fi, Bluetooth, power profile, battery, tray, the bell and POWER. Clicks:
+  - `VOL`: hyprpwcenter, the mixer (outputs, inputs, per-app volume); right-click mutes, scroll changes the volume
+  - `BRI`: scroll changes the brightness
+  - `NET`: nmtui (Wi-Fi networks, VPNs, editing connections); `BT`: bluetui (scan, pair, connect). Both open in a floating terminal window
+  - `PWR`: cycles power-saver / balanced / performance
+  - `BELL`/`DND`: do not disturb on/off (low-battery warnings still show); right-click brings back the last dismissed notification
+  - `POWER`: the power menu
+- Notifications are mako's: popups in the top-right corner, gone after 5 seconds (click one to dismiss it).
+- Bluetooth is on from boot; turn it off in bluetui when you don't need it.
 - Login: greetd runs tuigreet, a text login prompt in the palette colours, which remembers the last user and session. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
 - Browser: LibreWolf (Firefox with privacy and security settings on by default, uBlock Origin included). It deletes cookies and history when it closes; change that in its Settings → Privacy & Security if you want to stay logged in.
 - The lock screen (hyprlock, `SUPER+Escape`) shows the time, the date, a greeting and the battery level over the wallpaper, in the palette colours (`home/lock-idle.nix`).
-- The launcher is fuzzel (`SUPER+D`). The power menu, the clipboard picker and the emoji picker use it too.
+- The launcher is hyprlauncher (`SUPER+D`, `home/launcher.nix`): apps, plus emoji after `.`, maths after `=` and fonts after `'`. The power menu, the clipboard picker and the window picker use it too. The Hypr tools (launcher, mixer, password prompts, shutdown screen, `hyprsysteminfo`) share one look set from the Stylix palette.
 - Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
 - Monitors are arranged by hyprdynamicmonitors (`home/monitors.nix`), which switches the layout when you plug in a screen or close the lid: laptop only (panel at 120 Hz), docked (external screen on the left at its highest refresh rate, panel on the right), docked with the lid closed (external screen only). `hyprdynamicmonitors tui` shows the screens and which profile is active; put lasting changes into `home/monitors.nix`.
-- Small utility windows float centred instead of tiling: the mixer, Bluetooth and file dialogs (all started as `ghostty --class=tui.<name>`) and the screenshot editor (`window_rule` in `home/hyprland.nix`).
+- Small utility windows float centred instead of tiling: the mixer and system info, Wi-Fi, Bluetooth and file dialogs (started as `ghostty --class=tui.<name>`) and the screenshot editor (`window_rule` in `home/hyprland.nix`).
 - Password prompts for apps that need administrator rights come from hyprpolkitagent (hyprtoolkit, no GTK/Qt).
 - Portals: Hyprland's own portal handles screenshots, screen sharing and global shortcuts (assigned by name in `modules/nixos/desktop.nix`); open/save dialogs are Yazi.
 - No Qt theme and no `nvidia-settings`: nothing installed uses Qt, and `nvidia-smi` shows the GPU's state in a terminal.

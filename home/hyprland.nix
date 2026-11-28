@@ -12,7 +12,8 @@
     portalPackage = null;
     # Session services without UWSM: when Hyprland starts, home-manager imports the environment
     # into systemd and starts hyprland-session.target, which pulls in graphical-session.target and
-    # with it ashell, hypridle, hyprpaper, cliphist, ...; when Hyprland exits, it stops them again.
+    # with it Waybar, mako, hyprlauncher, hypridle, hyprpaper, cliphist, ...; when Hyprland exits,
+    # it stops them again.
     # "--all" imports the whole environment (PATH included), as UWSM did, so commands the
     # services run (brightnessctl, hyprctl, ...) are found.
     systemd = {
@@ -81,13 +82,21 @@
       # the app's .desktop file; `hyprctl clients` shows it for open windows).
       window_rule = [
         {
-          # Mixer, Bluetooth and file dialogs: terminal apps started with
+          # Wi-Fi, Bluetooth and file dialogs: terminal apps started with
           # `ghostty --class=tui.<name>` (home/session.nix, home/bar.nix).
           name = "float-terminal-tools";
           match.class = "^tui\\..*$";
           float = true;
           center = true;
           size = "1000 650";
+        }
+        {
+          # Hypr tools: mixer (from the bar's speaker) and system info.
+          name = "float-hypr-tools";
+          match.class = "^(hyprpwcenter|hyprsysteminfo)$";
+          float = true;
+          center = true;
+          size = "900 600";
         }
         {
           name = "float-screenshot-editor";
@@ -107,13 +116,13 @@
           # Launchers & session
           (bindCall "SUPER + Return" ''hl.dsp.exec_cmd("ghostty")'')
           (bindCall "SUPER + Q" "hl.dsp.window.close()")
-          (bindCall "SUPER + M" "hl.dsp.exit()") # log out
+          (bindCall "SUPER + M" ''hl.dsp.exec_cmd("hyprshutdown -t 'Logging out...'")'') # log out, apps close first
           (bindCall "SUPER + E" ''hl.dsp.exec_cmd("ghostty -e yazi")'') # file manager
-          (bindCall "SUPER + D" ''hl.dsp.exec_cmd("fuzzel")'')
+          (bindCall "SUPER + D" ''hl.dsp.exec_cmd("hyprlauncher")'') # launcher (home/launcher.nix)
           (bindCall "SUPER + V" ''hl.dsp.window.float({ action = "toggle" })'')
           (bindCall "SUPER + F" "hl.dsp.window.fullscreen()")
 
-          # Alt-tab: a fuzzel list of the windows, most recently used first (desktop-scripts.nix)
+          # Alt-tab: a list of the windows, most recently used first (desktop-scripts.nix)
           (bindCall "ALT + Tab" ''hl.dsp.exec_cmd("window-pick")'')
 
           # Screenshots: region to clipboard; Shift = region to file; Ctrl = full screen to file
@@ -126,8 +135,8 @@
           # Clipboard history
           (bindCall "SUPER + SHIFT + V" ''hl.dsp.exec_cmd("clipboard-pick")'')
 
-          # Emoji picker: types the chosen emoji and also copies it
-          (bindCall "SUPER + period" ''hl.dsp.exec_cmd("emoji-pick")'')
+          # Emoji picker: hyprlauncher's emoji search; the chosen one is copied (paste with Ctrl+V)
+          (bindCall "SUPER + period" ''hl.dsp.exec_cmd("hyprlauncher -f unicode")'')
 
           # Focus
           (bindCall "SUPER + H" ''hl.dsp.focus({ direction = "left" })'')
@@ -173,21 +182,21 @@
           ]
         ) (lib.range 1 10)
         ++ [
-          # Volume & brightness keys (work when locked, repeat when held). ashell changes the value
-          # and shows it in its on-screen display (osd settings in home/session.nix).
-          (bindOpts "XF86AudioRaiseVolume" ''hl.dsp.exec_cmd("ashell msg volume-up")'' {
+          # Volume & brightness keys (work when locked, repeat when held). `osd` changes the value
+          # and shows it as a notification with a bar (desktop-scripts.nix).
+          (bindOpts "XF86AudioRaiseVolume" ''hl.dsp.exec_cmd("osd volume-up")'' {
             locked = true;
             repeating = true;
           })
-          (bindOpts "XF86AudioLowerVolume" ''hl.dsp.exec_cmd("ashell msg volume-down")'' {
+          (bindOpts "XF86AudioLowerVolume" ''hl.dsp.exec_cmd("osd volume-down")'' {
             locked = true;
             repeating = true;
           })
-          (bindOpts "XF86MonBrightnessUp" ''hl.dsp.exec_cmd("ashell msg brightness-up")'' {
+          (bindOpts "XF86MonBrightnessUp" ''hl.dsp.exec_cmd("osd brightness-up")'' {
             locked = true;
             repeating = true;
           })
-          (bindOpts "XF86MonBrightnessDown" ''hl.dsp.exec_cmd("ashell msg brightness-down")'' {
+          (bindOpts "XF86MonBrightnessDown" ''hl.dsp.exec_cmd("osd brightness-down")'' {
             locked = true;
             repeating = true;
           })
@@ -199,10 +208,10 @@
           (bindOpts "XF86AudioPrev" ''hl.dsp.exec_cmd("playerctl previous")'' { locked = true; })
 
           # Mute keys
-          (bindOpts "XF86AudioMute" ''hl.dsp.exec_cmd("ashell msg volume-toggle-mute")'' {
+          (bindOpts "XF86AudioMute" ''hl.dsp.exec_cmd("osd volume-mute")'' {
             locked = true;
           })
-          (bindOpts "XF86AudioMicMute" ''hl.dsp.exec_cmd("ashell msg microphone-toggle-mute")'' {
+          (bindOpts "XF86AudioMicMute" ''hl.dsp.exec_cmd("osd mic-mute")'' {
             locked = true;
           })
 

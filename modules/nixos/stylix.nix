@@ -1,4 +1,4 @@
-# System-wide theme (Stylix). Neovim, Ghostty, ashell, fuzzel, GTK, Hyprland borders, ... all take
+# System-wide theme (Stylix). Neovim, Ghostty, Waybar, mako, GTK, Hyprland borders, ... all take
 # their colours from the palette below, so changing it here re-themes everything.
 { pkgs, ... }:
 
@@ -47,7 +47,7 @@ in
     # The same switch for home-manager is in home/session.nix.
     targets.qt.enable = false;
 
-    # Icons for fuzzel, the tray and the bar. Without an icon theme they fall back to
+    # Icons for the launcher, the tray and notifications. Without an icon theme they fall back to
     # whatever generic icons happen to be installed. Papirus' folders are blue, which suits the
     # palette.
     icons = {

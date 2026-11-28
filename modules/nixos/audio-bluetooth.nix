@@ -8,8 +8,8 @@
     pulse.enable = true;
   };
 
-  # Bluetooth, on from boot; the bar's settings panel turns it off and on. New devices are paired
-  # with bluetui, a terminal app (home/session.nix; right-click the panel's Bluetooth button).
+  # Bluetooth, on from boot. bluetui, a terminal app, turns it off and on and pairs new devices
+  # (home/session.nix; click BT in the bar).
   hardware.bluetooth = {
     enable = true;
     powerOnBoot = true;
