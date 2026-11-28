@@ -2,13 +2,9 @@
 #
 #   1. formatting (nixfmt)
 #   2. `nix flake check`: evaluates the whole NixOS + home-manager configuration
-#   3. Hyprland's own config check, once per monitor profile (home/monitors.nix): each profile
-#      template is filled in with example connector names and loaded through hyprland.lua
-#   4. a simulation of every monitor profile: the laptop panel is never switched off unless
-#      another screen is connected
-#   5. the login screen (ctOS greeter) starts headless and draws its screen
-#   6. hyprdynamicmonitors' own config check
-#   7. the full system build, the same `nix build` the laptop runs
+#   3. Hyprland's own config check of the generated hyprland.lua
+#   4. the login screen (ctOS greeter) starts headless and draws its screen
+#   5. the full system build, the same `nix build` the laptop runs
 name: CI
 
 on:
@@ -54,91 +50,16 @@ jobs:
       - name: Evaluate the flake and the whole system
         run: nix flake check --no-build
 
-      - name: Hyprland config check (every monitor profile)
+      - name: Hyprland config check
         run: |
           hm='.#nixosConfigurations.g15.config.home-manager.users.mateus'
           lua=$(nix build --no-link --print-out-paths "$hm.xdg.configFile.\"hypr/hyprland.lua\".source")
-          toml=$(nix build --no-link --print-out-paths "$hm.xdg.configFile.\"hyprdynamicmonitors/config.toml\".source")
           hyprland=$(nix build --no-link --print-out-paths '.#nixosConfigurations.g15.pkgs.hyprland^out')
-          dest=$(grep -o '^destination = "[^"]*"' "$toml" | cut -d'"' -f2)
           XDG_RUNTIME_DIR=$(mktemp -d)
           export XDG_RUNTIME_DIR
-          work=$(mktemp -d)
-
-          check() { # check <name> <hyprland.lua>
-            "$hyprland/bin/Hyprland" --verify-config -c "$2" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tee "$work/out"
-            grep -q "config ok" "$work/out" || { echo "::error::Hyprland rejected the config ($1)"; exit 1; }
-          }
-
-          check "no monitors.lua yet" "$lua"
-          grep -o '/nix/store/[^"]*\.lua\.tmpl' "$toml" | while read -r tmpl; do
-            # shellcheck disable=SC2016 # the $ is a literal part of the template fields
-            sed -e '/^{{-/d' -e 's/{{ \$laptop\.Name }}/eDP-1/g' -e 's/{{ \$external\.Name }}/HDMI-A-1/g' \
-              "$tmpl" > "$work/monitors.lua"
-            if grep -q '{{' "$work/monitors.lua"; then echo "::error::unfilled template field in $tmpl"; exit 1; fi
-            sed "s#$dest#$work/monitors.lua#" "$lua" > "$work/hyprland.lua"
-            echo "== $tmpl"; cat "$work/monitors.lua"
-            check "$tmpl" "$work/hyprland.lua"
-          done
-
-      # Runs each monitor profile with a fake Hyprland that reports which screens are connected,
-      # and checks that the laptop panel can never end up as the only screen and switched off.
-      - name: Laptop screen stays usable (simulated monitor profiles)
-        run: |
-          hm='.#nixosConfigurations.g15.config.home-manager.users.mateus'
-          toml=$(nix build --no-link --print-out-paths "$hm.xdg.configFile.\"hyprdynamicmonitors/config.toml\".source")
-          lua=$(nix build --no-link --print-out-paths '.#nixosConfigurations.g15.pkgs.lua5_4^out')
-          work=$(mktemp -d)
-
-          cat > "$work/simulate.lua" <<'LUA'
-          -- usage: lua simulate.lua <monitors.lua> <connected screens, comma-separated>
-          local file, connected = arg[1], arg[2] or ""
-          local rules = {}
-          hl = {
-            monitor = function(spec) rules[spec.output] = spec end,
-            get_monitors = function()
-              local list = {}
-              for name in string.gmatch(connected, "[^,]+") do list[#list + 1] = { name = name } end
-              return list
-            end,
-          }
-          dofile(file)
-          for output, spec in pairs(rules) do
-            print(output .. " " .. (spec.disabled and "off" or "on") .. " " .. tostring(spec.mode))
-          end
-          LUA
-
-          fail() { echo "::error::$1"; exit 1; }
-          sim() { "$lua/bin/lua" "$work/simulate.lua" "$1" "$2"; }
-
-          grep -o '/nix/store/[^"]*\.lua\.tmpl' "$toml" | while read -r tmpl; do
-            name=$(basename "$tmpl" .lua.tmpl | cut -d- -f2-)
-            # shellcheck disable=SC2016 # the $ is a literal part of the template fields
-            sed -e '/^{{-/d' -e 's/{{ \$laptop\.Name }}/eDP-1/g' -e 's/{{ \$external\.Name }}/HDMI-A-1/g' \
-              "$tmpl" > "$work/$name.lua"
-
-            for connected in "eDP-1" ""; do
-              state=$(sim "$work/$name.lua" "$connected")
-              echo "== $name, connected: '${connected:-none listed yet}'"; echo "$state"
-              if echo "$state" | grep -q '^eDP-1 off'; then
-                fail "$name switches the panel off although no other screen is connected"
-              fi
-            done
-
-            both=$(sim "$work/$name.lua" "eDP-1,HDMI-A-1")
-            echo "== $name, connected: eDP-1 + HDMI-A-1"; echo "$both"
-            case "$name" in
-              laptop)
-                echo "$both" | grep -q '^eDP-1 on 1920x1080@120' || fail "laptop: panel not at 1920x1080@120" ;;
-              docked)
-                echo "$both" | grep -q '^eDP-1 on' || fail "docked: panel not on"
-                echo "$both" | grep -q '^HDMI-A-1 on' || fail "docked: external screen not on" ;;
-              docked-closed)
-                echo "$both" | grep -q '^eDP-1 off' || fail "docked-closed: panel not switched off"
-                echo "$both" | grep -q '^HDMI-A-1 on' || fail "docked-closed: external screen not on" ;;
-              *) fail "unknown profile $name: add its expectations here" ;;
-            esac
-          done
+          out=$(mktemp)
+          "$hyprland/bin/Hyprland" --verify-config -c "$lua" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tee "$out"
+          grep -q "config ok" "$out" || { echo "::error::Hyprland rejected the config"; exit 1; }
 
       # Starts the login screen (ctOS, modules/nixos/ctos-greeter.nix) the way greetd does, kiosk
       # mode inside cage, on a headless screen with software rendering. It must still be running
@@ -180,14 +101,6 @@ jobs:
           echo "colours on screen: $colours"
           [ "$colours" -gt 16 ] || fail "the screen is (nearly) blank"
           kill "$cage_pid"
-
-      - name: hyprdynamicmonitors config check
-        run: |
-          hm='.#nixosConfigurations.g15.config.home-manager.users.mateus'
-          toml=$(nix build --no-link --print-out-paths "$hm.xdg.configFile.\"hyprdynamicmonitors/config.toml\".source")
-          hdm=$(nix build --no-link --print-out-paths .#nixosConfigurations.g15.pkgs.hyprdynamicmonitors)
-          cat "$toml"
-          "$hdm/bin/hyprdynamicmonitors" validate --config "$toml"
 
       - name: Build the system
         run: nix build --no-link .#nixosConfigurations.g15.config.system.build.toplevel

@@ -13,4 +13,4 @@ Layout: `flake.nix`, `hosts/g15`, `modules/nixos/*`, `home/*`.
 - Don't touch hardware, nvidia or boot modules unless asked.
 - Anything needing the owner's decision goes in `docs/questions.md`; continue with the safest default.
 - Every change updates `README.md` in the same commit: what changed for the owner (features, keys, files in the layout, install/recovery steps, CI steps). The README describes only what exists now: remove or rewrite anything a change makes stale. Keep modules small and commented with the *why*; the owner is learning.
-- Testing is CI's job (`.github/workflows/ci.yml`), not a local build: every change goes through a pull request, and CI (formatting, `nix flake check`, Hyprland's config check for each monitor profile, the headless login-screen test, hyprdynamicmonitors' config check, the full system build) must pass before merging.
+- Testing is CI's job (`.github/workflows/ci.yml`), not a local build: every change goes through a pull request, and CI (formatting, `nix flake check`, Hyprland's config check, the headless login-screen test, the full system build) must pass before merging.

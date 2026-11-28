@@ -32,13 +32,23 @@
         }
       ];
 
-      # hl.monitor({ ... }): only the catch-all for screens without a rule. The real layouts
-      # (laptop, docked, lid closed) come from hyprdynamicmonitors (home/monitors.nix).
+      # hl.monitor({ ... }): two modes, switched by Hyprland itself when a screen is plugged in or
+      # out (no daemon needed):
+      #   laptop only    the panel at 1920x1080 and 120 Hz (also on battery)
+      #   HDMI plugged   the panel stays on as it is, the external screen goes to its left at its
+      #                  highest refresh rate. Workspaces can live on either screen.
+      # The panel is never switched off, so the laptop is always usable.
       monitor = [
         {
-          output = "";
-          mode = "preferred";
-          position = "auto";
+          output = "eDP-1"; # the built-in panel
+          mode = "1920x1080@120";
+          position = "0x0";
+          scale = 1;
+        }
+        {
+          output = ""; # any other screen (HDMI, or USB-C/DisplayPort)
+          mode = "highrr";
+          position = "auto-left";
           scale = 1;
         }
       ];

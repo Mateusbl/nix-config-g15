@@ -50,7 +50,6 @@ home/                          home-manager modules, one topic per file
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
   desktop-scripts.nix          power menu, volume/brightness overlay, screenshots (+ editor), window/clipboard pickers
   desktop-extras.nix           optional: night light, colour picker, screen recorder
-  monitors.nix                 hyprdynamicmonitors: monitor layout per connected screens and lid state
   battery-warning.nix          notification at 20% and 10% battery
 docs/                          Neovim docs, devshell contract, jj and oo7 notes, open questions
 assets/nix-bg.png              wallpaper used by Stylix
@@ -662,7 +661,6 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 | `XF86AudioPlay/Next/Prev` | media control via playerctl, sent to the last used player (playerctld) |
 | Volume / brightness / mute keys | change the value and show it in a small notification with a bar, bottom centre (5% steps, volume up to 150%) |
 | `SUPER+M` | log out (apps are closed first, so they can save) |
-| `SUPER+SHIFT+M` | monitor rescue: drop the generated layout and turn every screen on (use it if a screen stays dark) |
 
 - The bar is Waybar (`home/bar.nix`): workspaces and window title on the left, the clock in the middle (hover for a calendar), and on the right CPU, memory, temperature, volume, brightness, Wi-Fi, Bluetooth, power profile, battery, tray, the bell and POWER. Clicks:
   - `VOL`: hyprpwcenter, the mixer (outputs, inputs, per-app volume); right-click mutes, scroll changes the volume
@@ -679,7 +677,7 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 - Hyprland's own animations match it (`home/hyprland.nix`): short and mechanical, no bounce. Windows grow in from 90% and shrink away, the bar, launcher and notifications slide in from their edge, workspaces slide sideways.
 - The launcher is hyprlauncher (`SUPER+D`, `home/launcher.nix`): apps, plus emoji after `.`, maths after `=` and fonts after `'`. The power menu, the clipboard picker and the window picker use it too. The Hypr tools (launcher, mixer, password prompts, shutdown screen, `hyprsysteminfo`) share one look set from the Stylix palette.
 - Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
-- Monitors are arranged by hyprdynamicmonitors (`home/monitors.nix`), which switches the layout when you plug in a screen or close the lid: laptop only (panel at 120 Hz), docked (external screen on the left at its highest refresh rate, panel on the right), docked with the lid closed (external screen only). `hyprdynamicmonitors tui` shows the screens and which profile is active; put lasting changes into `home/monitors.nix`.
+- Monitors: two modes, switched by Hyprland by itself when you plug or unplug a screen (`monitor` in `home/hyprland.nix`). Laptop only: the panel at 1920x1080 and 120 Hz. HDMI plugged in: the panel stays on, the external screen goes to its left at its highest refresh rate. The panel is never switched off, so the laptop is always usable. With a screen plugged in, closing the lid does not suspend (systemd treats that as docked); unplug first, or use the power menu.
 - Small utility windows float centred instead of tiling: the mixer and system info, Wi-Fi, Bluetooth and file dialogs (started as `ghostty --class=tui.<name>`) and the screenshot editor (`window_rule` in `home/hyprland.nix`).
 - Password prompts for apps that need administrator rights come from hyprpolkitagent (hyprtoolkit, no GTK/Qt).
 - Portals: Hyprland's own portal handles screenshots, screen sharing and global shortcuts (assigned by name in `modules/nixos/desktop.nix`); open/save dialogs are Yazi.
@@ -774,15 +772,10 @@ Testing happens in **CI** (`.github/workflows/ci.yml`), on every pull request an
 
 1. the nixfmt formatting check
 2. `nix flake check`: evaluates the whole NixOS and home-manager configuration
-3. Hyprland's own config check (`Hyprland --verify-config`), once without a monitor layout and once
-   for each hyprdynamicmonitors profile, with the profile filled in with example screen names
-4. a simulation of every monitor profile with a fake Hyprland: with only the laptop panel connected
-   (or none listed yet, as at startup) no profile switches the panel off; with an external screen,
-   each profile gives the expected layout
-5. the login screen: the ctOS greeter is started the way greetd starts it (kiosk mode in cage), on a
+3. Hyprland's own config check (`Hyprland --verify-config`) of the generated `hyprland.lua`
+4. the login screen: the ctOS greeter is started the way greetd starts it (kiosk mode in cage), on a
    headless screen; it must still be running after a few seconds and must have drawn its screen
-6. `hyprdynamicmonitors validate` on the generated config
-7. the full system build, the same `nix build` the laptop runs
+5. the full system build, the same `nix build` the laptop runs
 
 Results show up on the pull request ("Checks") and under the repository's Actions tab.
 
