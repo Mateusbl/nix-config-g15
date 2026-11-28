@@ -8,6 +8,7 @@
     ./lock-idle.nix
     ./bar.nix
     ./hyprland.nix
+    ./monitors.nix
     ./editor/neovim # nixvim, split into one file per topic
     ./yazi.nix
     ./jujutsu.nix

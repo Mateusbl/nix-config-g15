@@ -47,6 +47,7 @@ home/                          home-manager modules, one topic per file
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
   desktop-scripts.nix          power menu, screenshots (+ editor), clipboard and emoji pickers, wdisplays
   desktop-extras.nix           optional: night light, colour picker, screen recorder
+  monitors.nix                 hyprdynamicmonitors: monitor layout per connected screens and lid state
   battery-warning.nix          notification at 20% and 10% battery
   window-switcher.nix          alt-tab window switcher (hyprshell)
 docs/                          Neovim docs, devshell contract, jj and oo7 notes
@@ -636,7 +637,7 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 - The lock screen (hyprlock, `SUPER+Escape`) shows the time, the date, a greeting and the battery level over the wallpaper, in the palette colours (`home/lock-idle.nix`).
 - The launcher is fuzzel (`SUPER+D`). The power menu, the clipboard picker and the emoji picker use it too.
 - Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
-- `wdisplays` arranges monitors visually. It does not save anything: copy the resulting positions into the monitor list in `home/hyprland.nix`.
+- Monitors are arranged by hyprdynamicmonitors (`home/monitors.nix`), which switches the layout when you plug in a screen or close the lid: laptop only (panel at 120 Hz), docked (external screen on the left at its highest refresh rate, panel on the right), docked with the lid closed (external screen only). `hyprdynamicmonitors tui` shows the screens and which profile is active. `wdisplays` can still be used to try out an arrangement; it is not saved, so put lasting changes into `home/monitors.nix`.
 - Small utility windows float centred instead of tiling: the mixer, Bluetooth manager, screenshot editor, wdisplays and file dialogs (`window_rule` in `home/hyprland.nix`).
 - Optional, off by default, in `home/desktop-extras.nix`:
   - `my.desktop.nightLight.enable`: hyprsunset, warmer colours from 20:00.
@@ -717,30 +718,20 @@ locally.
 
 ## Testing
 
-These checks ran before this layout was committed, and all of them pass:
+Testing happens in **CI** (`.github/workflows/ci.yml`), on every pull request and every push to
+`main`. Changes go through a pull request, and it is merged only when CI passes. CI runs:
 
-```bash
-nix flake check --no-build
-```
+1. the nixfmt formatting check
+2. `nix flake check`: evaluates the whole NixOS and home-manager configuration
+3. Hyprland's own config check (`Hyprland --verify-config`), once without a monitor layout and once
+   for each hyprdynamicmonitors profile, with the profile filled in with example screen names
+4. `hyprdynamicmonitors validate` on the generated config
+5. the full system build, the same `nix build` the laptop runs
 
-```bash
-nix eval .#nixosConfigurations.g15.config.system.build.toplevel.drvPath
-```
+Results show up on the pull request ("Checks") and under the repository's Actions tab.
 
-```bash
-nix build .#nixosConfigurations.g15.config.system.build.diskoScript
-```
-
-The first checks the flake outputs and evaluates the whole NixOS configuration. The second
-instantiates the system closure. The third builds the disko partitioning script without
-running it.
-
-**CI** (`.github/workflows/ci.yml`) runs on every pull request and every push to `main`: the
-nixfmt formatting check and `nix flake check --no-build`. It evaluates only; it does not build the
-system. It currently does not start at all because of a billing problem on the GitHub account.
-
-There are no automated tests of the running machine or of the Neovim config. After a switch,
-`systemctl --failed` and `systemctl --user --failed` show services that did not start.
+There are no automated tests of the running machine. After a switch, `systemctl --failed` and
+`systemctl --user --failed` show services that did not start.
 
 ## License
 
