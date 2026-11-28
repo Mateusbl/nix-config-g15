@@ -26,6 +26,7 @@ modules/nixos/                 shared system modules, one topic per file
   storage.nix                  btrfs auto-scrub
   snapshots.nix                daily btrfs snapshots of /home (btrbk)
   secrets.nix                  oo7 as the only Secret Service (+ PAM unlock, portal)
+  hardening.nix                kernel and network settings that close small leaks
   nix.nix                      nix settings, flake registry, GC, nh
   nvidia.nix                   PRIME offload (Intel iGPU + NVIDIA dGPU), open kernel modules
   power-sleep.nix              lid/power key, suspend-then-hibernate, power profile
@@ -672,7 +673,7 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
   - `POWER`: the power menu
 - Notifications are mako's: popups in the top-right corner, gone after 5 seconds (click one to dismiss it).
 - Bluetooth is on from boot; turn it off in bluetui when you don't need it.
-- Login: greetd runs the ctOS greeter (`modules/nixos/ctos-greeter.nix`), an animated "terminal" login inspired by Watch Dogs' ctOS, in the palette colours, with real information instead of upstream's made-up texts (your name, the machine, NixOS and kernel versions, timezone, NixOS logo): it types out a boot sequence, then asks for the password of the first user (`mateus`) and starts Hyprland. Instead of a password you can type commands: `help`, `users`, `desktops`, `chusr <name>`, `chdesk <name>`. It runs in cage, a small kiosk compositor, with Quickshell from nixpkgs; the source is pinned to one commit, so updating it means changing `rev` and `hash` in that file. If it ever fails to start, `Ctrl+Alt+F2` gives a text login, and `my.ctosGreeter.enable = false;` brings back tuigreet, a text login prompt. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
+- Login: greetd runs the ctOS greeter (`modules/nixos/ctos-greeter.nix`), an animated "terminal" login inspired by Watch Dogs' ctOS, in the palette colours, with real information instead of upstream's made-up texts (your name, the machine, NixOS and kernel versions, timezone); its logos are upstream's: it types out a boot sequence, then asks for the password of the first user (`mateus`) and starts Hyprland. Instead of a password you can type commands: `help`, `users`, `desktops`, `chusr <name>`, `chdesk <name>`. It runs in cage, a small kiosk compositor, with Quickshell from nixpkgs; the source is pinned to one commit, so updating it means changing `rev` and `hash` in that file. If it ever fails to start, `Ctrl+Alt+F2` gives a text login, and `my.ctosGreeter.enable = false;` brings back tuigreet, a text login prompt. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
 - Browser: LibreWolf (Firefox with privacy and security settings on by default, uBlock Origin included). It deletes cookies and history when it closes; change that in its Settings → Privacy & Security if you want to stay logged in.
 - The lock screen is ctOS too (`SUPER+L`, `SUPER+Escape`, after 10 idle minutes and before suspend): `ctos-lock`, run by hypridle (`home/lock-idle.nix`), with shorter animations than at login. If it ever froze: `Ctrl+Alt+F2`, log in, run `hyprctl --instance 0 dispatch 'hl.dsp.exec_cmd("ctos-lock")'` (Hyprland lets a new lock screen replace a crashed one), then `Ctrl+Alt+F1`. With `my.ctosGreeter.enable = false;` hyprlock is the lock screen again.
 - Hyprland's own animations match it (`home/hyprland.nix`): short and mechanical, no bounce. Windows grow in from 90% and shrink away, the bar, launcher and notifications slide in from their edge, workspaces slide sideways.
@@ -744,6 +745,12 @@ builds would run out of memory).
 - **Nix daemon:** only `wheel` members may build or add to the store (`allowed-users` in
   `modules/nixos/nix.nix`).
 - **`/tmp` is emptied at every boot** (`boot.tmp.cleanOnBoot` in `modules/nixos/boot.nix`).
+- **Kernel and network** (`modules/nixos/hardening.nix`): kernel addresses hidden, `dmesg` only
+  with `sudo`, ICMP redirects and source-routed packets ignored.
+- **Locking before sleep:** suspend waits until the lock screen is really up
+  (`inhibit_sleep` in `home/lock-idle.nix`), so the desktop never shows on resume.
+- **Login screen:** runs as its own `greeter` user, Wayland only (no X server behind it).
+- **CI:** read-only token, GitHub Actions pinned to commits, no credentials left in the checkout.
 - Also: Secure Boot with your own keys (lanzaboote), full-disk encryption (LUKS), nftables
   firewall, rootless Podman, oo7 as the only keyring, and LibreWolf as the browser.
 

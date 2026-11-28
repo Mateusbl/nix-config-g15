@@ -38,12 +38,15 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
           df -h /
 
-      # v5 runs on Node.js 24; v4 still targets Node.js 20, which GitHub warns is deprecated.
-      - uses: actions/checkout@v5
+      # Actions are pinned to a commit (the tag is in the comment): a tag can be moved to other
+      # code later, a commit cannot. v5 runs on Node.js 24 (v4's Node.js 20 is deprecated).
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false # nothing here pushes, so don't leave a token in .git
 
       # Installs plain upstream Nix. Despite the action's name, no Cachix cache is used:
       # the only substituter is cache.nixos.org.
-      - uses: cachix/install-nix-action@v31
+      - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
 
       - name: Formatting (nixfmt)
         run: git ls-files -z '*.nix' | xargs -0 nix fmt -- --check
@@ -158,10 +161,11 @@ jobs:
           echo '{}' > /var/lib/ctos/greeter.state.json
 
           XDG_RUNTIME_DIR=$(mktemp -d)
+          HOME=$(mktemp -d)
           chmod 700 "$XDG_RUNTIME_DIR"
-          export XDG_RUNTIME_DIR WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 \
+          export XDG_RUNTIME_DIR HOME WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 \
             LIBSEAT_BACKEND=noop QT_QUICK_BACKEND=software FONTCONFIG_FILE="$fonts" \
-            CTOS_MODE=kiosk HOME="$(mktemp -d)"
+            CTOS_MODE=kiosk
           work=$(mktemp -d)
           "$cage/bin/cage" -d -- "$qs/bin/quickshell" --path "$ctos/share/ctos/greeter.qml" > "$work/log" 2>&1 &
           cage_pid=$!

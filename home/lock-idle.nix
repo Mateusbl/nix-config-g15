@@ -64,6 +64,9 @@ in
         # ctos-lock comes from the system profile; it never starts a second locker.
         lock_cmd = if ctos then "ctos-lock" else "${hyprlock}";
         before_sleep_cmd = "loginctl lock-session";
+        # Hold off suspend until the screen is really locked, so the desktop never shows for a
+        # moment on resume. (hypridle's default only waits when the lock command is hyprlock.)
+        inhibit_sleep = 3;
         # Was misspelled "aftet_sleep_cmd", so hypridle ignored it.
         after_sleep_cmd = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\"})'";
       };

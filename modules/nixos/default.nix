@@ -17,5 +17,6 @@
     ./stylix.nix
     ./users.nix
     ./secrets.nix
+    ./hardening.nix
   ];
 }

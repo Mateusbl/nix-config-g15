@@ -10,8 +10,8 @@
 #     so it follows the system theme
 #
 # The texts it shows are real: upstream's are made up (a fictional company, an Australian region,
-# random IDs), here they say who you are, which machine, NixOS and kernel this is, and the
-# NixOS logo replaces upstream's fictional ones. They come from this config at build time.
+# random IDs), here they say who you are and which machine, NixOS and kernel this is. They come
+# from this config at build time. Upstream's logos are kept.
 #
 # Using it: the screen types out a short boot sequence, then asks for the password of the first
 # normal user (mateus) and starts the first session (Hyprland). Typing commands instead of a
@@ -49,7 +49,6 @@ let
   kernel = config.boot.kernelPackages.kernel.version;
   region = upper (builtins.replaceStrings [ "/" ] [ "-" ] config.time.timeZone);
   machine = upper cfg.machine;
-  snowflake = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
 
   # The vertical text on the right edge was drawn into a picture; this one says what this
   # machine is. Qt draws the SVG text with the greeter's font, rotated to run downwards.
@@ -116,9 +115,7 @@ let
       substituteInPlace greeter/components/Status.qml \
         --replace-fail 'Settings.fakeStatus.env' '"DESKTOP"' \
         --replace-fail 'Settings.fakeStatus.node' '"${upper host}"'
-      # NixOS' logo instead of the fictional OS and company logos; the device text from above.
-      cp ${snowflake} greeter/resources/os-icon.svg
-      cp ${snowflake} greeter/resources/blume-logo.svg
+      # The device text from above (upstream's logos stay as they are).
       cp ${deviceText} greeter/resources/device-text.svg
 
       # Colours: ctOS' neutral greys become the palette's blue-tinted ones, its light-grey
@@ -161,12 +158,15 @@ let
   };
 
   # What greetd runs: cage shows one full-screen window, ctOS in kiosk mode. The greeter user
-  # has no home, so Quickshell keeps its cache in ctOS' state dir.
+  # has no home, so Quickshell keeps its cache in ctOS' state dir. Without DISPLAY, Quickshell
+  # does not look for an X server, so cage never starts Xwayland: a faster start and one less
+  # program running on the login screen.
   greeter = pkgs.writeShellScript "ctos-greeter" ''
     export CTOS_MODE=kiosk
     export HOME=/var/lib/ctos
     export XDG_CACHE_HOME=/var/lib/ctos/cache
     exec ${lib.getExe pkgs.cage} -d -s -m last -- \
+      env -u DISPLAY QT_QPA_PLATFORM=wayland \
       ${lib.getExe pkgs.quickshell} --path ${ctos}/share/ctos/greeter.qml
   '';
 
