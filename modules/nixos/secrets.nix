@@ -14,15 +14,13 @@
   # while the daemon is not running gets an activation error instead of starting it.
   systemd.user.services.oo7-daemon.aliases = [ "dbus-org.freedesktop.secrets.service" ];
 
-  # Which portal implements each interface is chosen per desktop. Hyprland's own config only
-  # lists "hyprland;gtk", and oo7-portal declares itself for GNOME only, so the Secret portal
-  # (used by sandboxed apps) is assigned explicitly. This file replaces hyprland-portals.conf,
-  # so its default line is repeated.
+  # Which portal implements each interface is chosen per desktop. oo7-portal declares itself
+  # for GNOME only, so the Secret portal (used by sandboxed apps) is assigned explicitly. This
+  # file replaces Hyprland's own hyprland-portals.conf ("hyprland;gtk"), so the default line is
+  # repeated, without gtk: there is no GTK portal (modules/nixos/desktop.nix, which also
+  # assigns the file chooser).
   xdg.portal.config.hyprland = {
-    default = [
-      "hyprland"
-      "gtk"
-    ];
+    default = [ "hyprland" ];
     "org.freedesktop.impl.portal.Secret" = [ "oo7-portal" ];
   };
 

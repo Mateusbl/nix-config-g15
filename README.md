@@ -2,7 +2,7 @@
 
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
-- **Desktop:** Hyprland (Lua config), greetd with tuigreet (login), ashell (bar, notifications, volume/brightness overlay), fuzzel (launcher), hyprshell (alt-tab), hyprlock/hypridle, Ghostty and LibreWolf
+- **Desktop:** Hyprland (Lua config), greetd with tuigreet (login), ashell (bar, notifications, volume/brightness overlay), fuzzel (launcher), hyprlock/hypridle, Ghostty and LibreWolf. No other GTK or Qt apps: the mixer, Bluetooth, file dialogs and text editing are terminal programs
 - **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
@@ -45,12 +45,11 @@ home/                          home-manager modules, one topic per file
   yazi.nix                     Yazi file manager
   identity.nix                 name + email, shared by git.nix and jujutsu.nix
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
-  desktop-scripts.nix          power menu, screenshots (+ editor), clipboard and emoji pickers, wdisplays
+  desktop-scripts.nix          power menu, screenshots, clipboard and emoji pickers
   desktop-extras.nix           optional: night light, colour picker, screen recorder
   monitors.nix                 hyprdynamicmonitors: monitor layout per connected screens and lid state
   battery-warning.nix          notification at 20% and 10% battery
-  window-switcher.nix          alt-tab window switcher (hyprshell)
-docs/                          Neovim docs, devshell contract, jj and oo7 notes
+docs/                          Neovim docs, devshell contract, jj and oo7 notes, open questions
 assets/nix-bg.png              wallpaper used by Stylix
 ```
 
@@ -601,8 +600,14 @@ tutorials match.
 - **Start it:** `y` in zsh (cds to Yazi's last folder when you quit with `q`), or
   `SUPER+E` (opens it in Ghostty). It is the only file manager.
 - **Openers:** text and code → `$EDITOR` (Neovim), images → imv, audio/video → mpv, PDF →
-  zathura, archives → Yazi's extract (7zip), anything else → `xdg-open`. These are also the
-  desktop defaults. Directories open in Yazi (in a Ghostty window), and `text/plain` in Mousepad.
+  LibreWolf's viewer, archives → Yazi's extract (7zip), anything else → `xdg-open`. These are
+  also the desktop defaults. Directories open in Yazi and `text/plain` in Neovim, each in a
+  Ghostty window.
+- **File dialogs:** when an app asks to open or save a file (LibreWolf's upload or download
+  dialog), Yazi opens in a floating window instead of a GTK dialog
+  (xdg-desktop-portal-termfilechooser). Pick a file with `Enter` (several: `Space` first, then
+  `Enter`); to save, go to the folder, edit the name in the file it shows, and quit. `q` without
+  choosing cancels.
 - **Previews:** images (kitty graphics protocol, native in Ghostty), video, PDF, archives,
   SVG, JSON, Markdown and code. The tools come with nixpkgs' Yazi wrapper.
 - **Plugins** (from nixpkgs `yaziPlugins`): git status signs, mount (`M`, also for USB
@@ -615,14 +620,13 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 
 | Key | Does |
 | --- | --- |
-| `ALT+Tab` / `ALT+SHIFT+Tab` | window switcher with previews, most recent first; release `ALT` to switch, `q` closes the selected window |
+| `ALT+Tab` / `ALT+SHIFT+Tab` | focus the next / previous window on the current workspace |
 | `SUPER+1`…`SUPER+0` | workspaces 1–10; with `SHIFT`, move the window there |
 | three-finger swipe left/right | previous / next workspace |
 | `SUPER+Escape` | lock |
 | `SUPER+SHIFT+Escape` | power menu (fuzzel): lock, suspend, hibernate, reboot, poweroff, logout. Nothing happens unless you pick one |
 | `Print` | region screenshot to the clipboard |
 | `Shift+Print` / `Ctrl+Print` | region / full screen to `~/Pictures/Screenshots`, with a notification |
-| `SUPER+Print` | region opened in satty to draw arrows, text or blur; `Ctrl+S` saves, `Ctrl+C` copies |
 | `SUPER+SHIFT+V` | clipboard history (cliphist, started with the session) |
 | `SUPER+.` | emoji picker (fuzzel): types the emoji and copies it |
 | `XF86AudioPlay/Next/Prev` | media control via playerctl, sent to the last used player (playerctld) |
@@ -630,7 +634,7 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 | `SUPER+M` | log out |
 | `SUPER+SHIFT+M` | monitor rescue: drop the generated layout and turn every screen on (use it if a screen stays dark) |
 
-- The bar is ashell (`home/bar.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pwvucontrol (volume mixer); right-clicking Bluetooth opens overskride (pairing).
+- The bar is ashell (`home/bar.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens wiremix (volume mixer, per-app volume); right-clicking Bluetooth opens bluetui (scan, pair, connect). Both are terminal apps in a floating window.
 - Notifications are ashell's too: popups in the top-right corner, and the bell in the bar keeps the list (click it to see them, right-click for do not disturb). They are kept in memory until you log out.
 - Wi-Fi and Bluetooth are handled in that panel; there are no separate tray applets. Bluetooth is on from boot; turn it off there when you don't need it. For VPNs or editing a connection use `nmtui` in a terminal.
 - Login: greetd runs tuigreet, a text login prompt in the palette colours, which remembers the last user and session. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
@@ -638,8 +642,10 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 - The lock screen (hyprlock, `SUPER+Escape`) shows the time, the date, a greeting and the battery level over the wallpaper, in the palette colours (`home/lock-idle.nix`).
 - The launcher is fuzzel (`SUPER+D`). The power menu, the clipboard picker and the emoji picker use it too.
 - Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
-- Monitors are arranged by hyprdynamicmonitors (`home/monitors.nix`), which switches the layout when you plug in a screen or close the lid: laptop only (panel at 120 Hz), docked (external screen on the left at its highest refresh rate, panel on the right), docked with the lid closed (external screen only). `hyprdynamicmonitors tui` shows the screens and which profile is active. `wdisplays` can still be used to try out an arrangement; it is not saved, so put lasting changes into `home/monitors.nix`.
-- Small utility windows float centred instead of tiling: the mixer, Bluetooth manager, screenshot editor, wdisplays and file dialogs (`window_rule` in `home/hyprland.nix`).
+- Monitors are arranged by hyprdynamicmonitors (`home/monitors.nix`), which switches the layout when you plug in a screen or close the lid: laptop only (panel at 120 Hz), docked (external screen on the left at its highest refresh rate, panel on the right), docked with the lid closed (external screen only). `hyprdynamicmonitors tui` shows the screens and which profile is active; put lasting changes into `home/monitors.nix`.
+- Small utility windows float centred instead of tiling: the mixer, Bluetooth and file dialogs, all started as `ghostty --class=tui.<name>` (`window_rule` in `home/hyprland.nix`).
+- There is no graphical password prompt (polkit agent). Wi-Fi, Bluetooth, power profiles, mounting USB drives and suspend/reboot need no password; `sudo`, `pkexec` and `systemctl` ask in the terminal.
+- No Qt theme and no `nvidia-settings`: nothing installed uses Qt, and `nvidia-smi` shows the GPU's state in a terminal.
 - Optional, off by default, in `home/desktop-extras.nix`:
   - `my.desktop.nightLight.enable`: hyprsunset, warmer colours from 20:00.
   - `my.desktop.colorPicker.enable`: hyprpicker on `SUPER+SHIFT+C`.

@@ -72,8 +72,8 @@
         ];
         pdf = [
           {
-            run = "zathura %s1";
-            desc = "zathura";
+            run = "librewolf %s1";
+            desc = "librewolf";
             orphan = true;
           }
         ];
@@ -139,10 +139,10 @@
   home.packages = with pkgs; [
     imv # images
     mpv # audio and video
-    zathura # PDF (zathura in nixpkgs includes the mupdf PDF plugin)
+    # PDFs open in LibreWolf (its built-in viewer), so there is no separate PDF app.
   ];
 
-  # Default apps for xdg-open. Directories -> Yazi and text/plain -> Mousepad are set in
+  # Default apps for xdg-open. Directories -> Yazi and text/plain -> Neovim are set in
   # home/session.nix.
   xdg.mimeApps.defaultApplications =
     let
@@ -167,6 +167,6 @@
       "audio/ogg" = mpv;
       "audio/x-wav" = mpv;
       "audio/mp4" = mpv;
-      "application/pdf" = "org.pwmt.zathura-pdf-mupdf.desktop";
+      "application/pdf" = "librewolf.desktop";
     };
 }

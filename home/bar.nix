@@ -63,9 +63,11 @@
         shutdown_cmd = "systemctl poweroff";
         logout_cmd = "hyprctl dispatch 'hl.dsp.exit()'";
         # Right-click the speaker / Bluetooth button for the full tools.
-        audio_sinks_more_cmd = "pwvucontrol";
-        audio_sources_more_cmd = "pwvucontrol";
-        bluetooth_more_cmd = "overskride";
+        # Terminal apps in a floating Ghostty window (home/session.nix).
+        # wiremix opens on the outputs or the inputs tab; its sliders also go up to 150%.
+        audio_sinks_more_cmd = "ghostty --class=tui.mixer -e wiremix --tab output -m 150";
+        audio_sources_more_cmd = "ghostty --class=tui.mixer -e wiremix --tab input -m 150";
+        bluetooth_more_cmd = "ghostty --class=tui.bluetooth -e bluetui";
       };
     };
   };

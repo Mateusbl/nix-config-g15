@@ -11,7 +11,7 @@
 | `oo7-daemon` (the Secret Service) | nixpkgs `oo7-server`, started as a systemd **user** service at login (`services.oo7.enable`) |
 | D-Bus activation of `org.freedesktop.secrets` | `oo7-server`'s D-Bus file, plus a unit alias `dbus-org.freedesktop.secrets.service` added in this repo (the upstream unit lacks it, so activation would fail if the daemon is not already running) |
 | Unlock at login | `pam_oo7` on the `login` PAM service (nixpkgs module). greetd's PAM service includes `login` with `substack`/`include`, so the keyring is unlocked with your login password |
-| Secret portal for sandboxed apps | `oo7-portal`, chosen explicitly in `/etc/xdg/xdg-desktop-portal/hyprland-portals.conf` (`org.freedesktop.impl.portal.Secret=oo7-portal`). Without that line it would never be used: Hyprland's own portals file lists only `hyprland;gtk`, and oo7-portal declares itself for GNOME |
+| Secret portal for sandboxed apps | `oo7-portal`, chosen explicitly in `/etc/xdg/xdg-desktop-portal/hyprland-portals.conf` (`org.freedesktop.impl.portal.Secret=oo7-portal`). Without that line it would never be used: Hyprland's own portals file lists only `hyprland;gtk` (here replaced by `hyprland`, there is no GTK portal), and oo7-portal declares itself for GNOME |
 | CLI (secret-tool replacement) | `oo7-cli` |
 | Only provider | `services.gnome.gnome-keyring.enable = mkForce false`, plus assertions against pass-secret-service and KWallet. KeePassXC's Secret Service integration is off (KeePassXC is not installed) |
 
@@ -22,7 +22,8 @@ oo7's README says gnome-keyring-daemon must be stopped first. Nothing here start
 xdg-desktop-portal reads `<desktop>-portals.conf` for `XDG_CURRENT_DESKTOP=Hyprland`, i.e.
 `hyprland-portals.conf`, and picks an implementation per interface. The NixOS file in
 `/etc/xdg` takes precedence over the one shipped in the Hyprland package. That is why the
-`default=hyprland;gtk` line is repeated there.
+default line is repeated there, as `default=hyprland` (there is no GTK portal; open/save dialogs
+are assigned to termfilechooser in `modules/nixos/desktop.nix`).
 
 ## Verify (after `nh os switch` and a fresh login)
 

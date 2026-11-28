@@ -36,10 +36,23 @@
   # Electron apps run natively on Wayland instead of XWayland
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
-  # GTK portal so file-open/save dialogs work in apps under Hyprland
-  xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+  # Portals: how apps ask the desktop for a screenshot, a screen share, a secret or a file.
+  # No GTK portal: open/save dialogs are Yazi in a terminal window instead (termfilechooser,
+  # configured in home/session.nix). The Hyprland module always adds the GTK portal, so the list
+  # is forced to exactly these three:
+  #   hyprland          screenshots, screen sharing, global shortcuts
+  #   oo7-portal        secrets for sandboxed apps (modules/nixos/secrets.nix)
+  #   termfilechooser   open/save dialogs
+  xdg.portal.extraPortals = lib.mkForce [
+    config.programs.hyprland.portalPackage
+    pkgs.oo7-portal
+    pkgs.xdg-desktop-portal-termfilechooser
+  ];
+  xdg.portal.config.hyprland."org.freedesktop.impl.portal.FileChooser" = [ "termfilechooser" ];
 
   # Removable drives: Yazi's mount plugin (`M`) mounts and ejects them through udisks.
   services.udisks2.enable = true;
-  programs.dconf.enable = true; # needed for Stylix/home-manager GTK settings
+  # dconf is a small settings store, not a GUI. home-manager writes the GTK theme settings there
+  # for the two GTK programs that stay (Ghostty, LibreWolf).
+  programs.dconf.enable = true;
 }

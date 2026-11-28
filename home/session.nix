@@ -1,17 +1,25 @@
-# Desktop session pieces: polkit agent, wallpaper, default apps, terminal, launcher, clipboard,
-# media keys, browser. The lock screen and idle behaviour are in lock-idle.nix, the bar in bar.nix.
-{ pkgs, ... }:
+# Desktop session pieces: wallpaper, default apps, terminal, launcher, clipboard, media keys,
+# browser, file dialogs. The lock screen and idle behaviour are in lock-idle.nix, the bar in
+# bar.nix.
+#
+# No GTK or Qt apps beyond the terminal and the browser: small tools (mixer, Bluetooth, file
+# dialogs, text editor) are terminal programs opened in a Ghostty window. The mixer, Bluetooth
+# and file-dialog windows get an app id starting with `tui.` (`ghostty --class=tui.<name>`), so
+# one rule in hyprland.nix floats them all.
+{ config, pkgs, ... }:
 
 {
   # Session services: systemd user services started with the graphical session
   # (hyprland-session.target, see home/hyprland.nix). Stylix themes them. Notifications and the
   # volume/brightness overlay are ashell's (bar.nix), so there is no separate notification daemon.
-  services.hyprpolkitagent.enable = true; # privilege prompts for GUI apps
+  # No graphical polkit agent (hyprpolkitagent is Qt, the others GTK). Everyday actions need no
+  # password for the logged-in user (Wi-Fi, Bluetooth, power profiles, mounting USB drives,
+  # suspend/reboot); `sudo`, `pkexec` and `systemctl` ask in the terminal they run in.
   services.hyprpaper.enable = true; # draws the Stylix wallpaper
 
-  # Default apps: Yazi (in a Ghostty window) for folders, Mousepad for plain text.
-  # Yazi is a terminal program, so "open folder" requests from other apps (a browser's
-  # "show in folder") need a desktop entry that starts it inside a terminal.
+  # Default apps: Yazi for folders, Neovim for plain text, both in a Ghostty window.
+  # They are terminal programs, so "open folder" / "open file" requests from other apps (a
+  # browser's "show in folder") need a desktop entry that starts them inside a terminal.
   xdg.desktopEntries.yazi-ghostty = {
     name = "Yazi";
     genericName = "File Manager";
@@ -23,12 +31,23 @@
       "FileManager"
     ];
   };
+  xdg.desktopEntries.nvim-ghostty = {
+    name = "Neovim";
+    genericName = "Text Editor";
+    icon = "nvim";
+    exec = "ghostty -e nvim %F";
+    mimeType = [ "text/plain" ];
+    categories = [
+      "Utility"
+      "TextEditor"
+    ];
+  };
 
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
       "inode/directory" = "yazi-ghostty.desktop";
-      "text/plain" = "org.xfce.mousepad.desktop";
+      "text/plain" = "nvim-ghostty.desktop";
     };
   };
 
@@ -72,8 +91,26 @@
   # protection, no telemetry, uBlock Origin included). By default it deletes cookies and history
   # when it closes, so you are logged out of sites after a restart; change that in its Settings →
   # Privacy & Security if you prefer. Stylix themes it like it did Firefox.
-  programs.librewolf.enable = true;
+  programs.librewolf = {
+    enable = true;
+    # Open/save dialogs through the portal (Yazi, see below) instead of GTK's own dialog.
+    settings."widget.use-xdg-desktop-portal.file-picker" = 1;
+  };
   stylix.targets.librewolf.profileNames = [ "default" ];
+
+  # Open/save dialogs: xdg-desktop-portal-termfilechooser (modules/nixos/desktop.nix) opens Yazi
+  # in a floating Ghostty window. Pick a file with Enter (several: select with Space first), or
+  # for "save", move to the folder and edit the suggested name in the file it shows, then quit.
+  # `q` without choosing cancels.
+  xdg.configFile."xdg-desktop-portal-termfilechooser/config".text = ''
+    [filechooser]
+    cmd=${pkgs.xdg-desktop-portal-termfilechooser}/share/xdg-desktop-portal-termfilechooser/yazi-wrapper.sh
+    default_dir=${config.home.homeDirectory}
+    env=TERMCMD=ghostty --class=tui.filechooser -e
+  '';
+
+  # Stylix's Qt theme is off: no Qt programs are installed (same switch in modules/nixos/stylix.nix).
+  stylix.targets.qt.enable = false;
 
   # Stylix themes every program it knows by default, including ones that are not installed. Its
   # rofi theme sets an option home-manager has renamed, which only produces a warning, so it is
@@ -81,14 +118,13 @@
   stylix.targets.rofi.enable = false;
 
   home.packages = with pkgs; [
-    mousepad
     brightnessctl
     playerctl
-    # Volume mixer: pwvucontrol, made for PipeWire (GTK4). Opened by right-clicking the speaker in
-    # the bar's settings panel.
-    pwvucontrol
-    # Bluetooth pairing and device settings (GTK4). Right-click the panel's Bluetooth button.
-    overskride
+    # Volume mixer made for PipeWire: outputs, inputs and per-app volume. Right-click the speaker
+    # in the bar's settings panel.
+    wiremix
+    # Bluetooth: scan, pair, connect, trust. Right-click the panel's Bluetooth button.
+    bluetui
     wl-clipboard
     grim
     slurp

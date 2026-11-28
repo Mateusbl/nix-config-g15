@@ -81,38 +81,13 @@
       # the app's .desktop file; `hyprctl clients` shows it for open windows).
       window_rule = [
         {
-          name = "float-mixer";
-          match.class = "^com\\.saivert\\.pwvucontrol$";
+          # Mixer, Bluetooth and file dialogs: terminal apps started with
+          # `ghostty --class=tui.<name>` (home/session.nix, home/bar.nix).
+          name = "float-terminal-tools";
+          match.class = "^tui\\..*$";
           float = true;
           center = true;
-          size = "900 600";
-        }
-        {
-          name = "float-bluetooth";
-          match.class = "^io\\.github\\.kaii_lb\\.Overskride$";
-          float = true;
-          center = true;
-          size = "700 500";
-        }
-        {
-          name = "float-screenshot-editor";
-          match.class = "^com\\.gabm\\.satty$";
-          float = true;
-          center = true;
-        }
-        {
-          name = "float-display-settings";
-          match.class = "^network\\.cycles\\.wdisplays$";
-          float = true;
-          center = true;
-          size = "1000 700";
-        }
-        {
-          name = "float-file-dialogs";
-          match.class = "^xdg-desktop-portal-gtk$";
-          float = true;
-          center = true;
-          size = "1000 700";
+          size = "1000 650";
         }
       ];
 
@@ -132,6 +107,11 @@
           (bindCall "SUPER + V" ''hl.dsp.window.float({ action = "toggle" })'')
           (bindCall "SUPER + F" "hl.dsp.window.fullscreen()")
 
+          # Alt-tab: Hyprland's own window cycling, no separate switcher program. ALT+Tab focuses
+          # the next window on the current workspace, ALT+SHIFT+Tab the previous one.
+          (bindCall "ALT + Tab" "hl.dsp.window.cycle_next()")
+          (bindCall "ALT + SHIFT + Tab" "hl.dsp.window.cycle_next({ next = false })")
+
           # Screenshots: region to clipboard; Shift = region to file; Ctrl = full screen to file
           (bindCall "Print" ''hl.dsp.exec_cmd("grim -g \"$(slurp)\" - | wl-copy")'')
           (bindCall "SHIFT + Print" ''hl.dsp.exec_cmd("screenshot region")'')
@@ -139,9 +119,6 @@
 
           # Clipboard history
           (bindCall "SUPER + SHIFT + V" ''hl.dsp.exec_cmd("clipboard-pick")'')
-
-          # Screenshot of a region, opened in an editor (arrows, text, blur) before saving
-          (bindCall "SUPER + Print" ''hl.dsp.exec_cmd("screenshot edit")'')
 
           # Emoji picker: types the chosen emoji and also copies it
           (bindCall "SUPER + period" ''hl.dsp.exec_cmd("emoji-pick")'')

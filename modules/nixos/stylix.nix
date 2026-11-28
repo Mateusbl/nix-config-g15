@@ -43,7 +43,11 @@ in
     image = wallpaper;
     base16Scheme = palette;
 
-    # Icons for fuzzel, the tray and GTK dialogs. Without an icon theme they fall back to
+    # No Qt programs are installed, so no Qt theme (it would pull in qt5ct, qt6ct and Kvantum).
+    # The same switch for home-manager is in home/session.nix.
+    targets.qt.enable = false;
+
+    # Icons for fuzzel, the tray and the bar. Without an icon theme they fall back to
     # whatever generic icons happen to be installed. Papirus' folders are blue, which suits the
     # palette.
     icons = {
@@ -53,7 +57,7 @@ in
       light = "Papirus-Light";
     };
 
-    # One mouse cursor everywhere (Hyprland, GTK, XWayland apps): light, so it stays visible on
+    # One mouse cursor everywhere (Hyprland, Ghostty, LibreWolf, XWayland apps): light, so it stays visible on
     # the navy background.
     cursor = {
       package = pkgs.bibata-cursors;
