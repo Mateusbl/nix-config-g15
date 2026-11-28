@@ -2,7 +2,7 @@
 
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
-- **Desktop:** Hyprland (Lua config), greetd with tuigreet (login), ashell (bar, notifications, volume/brightness overlay), fuzzel (launcher), hyprshell (alt-tab), hyprlock/hypridle, Ghostty and LibreWolf
+- **Desktop:** Hyprland (Lua config), greetd with the animated ctOS login and lock screen (Quickshell), Waybar (bar), mako (notifications), and the Hypr tools wherever one exists: hyprlauncher (launcher), hyprpwcenter (mixer), hyprpolkitagent, hyprshutdown, hypridle/hyprpaper, all on Hyprland's own toolkit (hyprtoolkit). Ghostty and LibreWolf. The only other GTK app is satty (screenshot editor); Bluetooth, Wi-Fi, file dialogs, the PDF viewer and text editing are terminal programs
 - **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
@@ -26,31 +26,33 @@ modules/nixos/                 shared system modules, one topic per file
   storage.nix                  btrfs auto-scrub
   snapshots.nix                daily btrfs snapshots of /home (btrbk)
   secrets.nix                  oo7 as the only Secret Service (+ PAM unlock, portal)
+  hardening.nix                kernel and network settings that close small leaks
   nix.nix                      nix settings, flake registry, GC, nh
   nvidia.nix                   PRIME offload (Intel iGPU + NVIDIA dGPU), open kernel modules
   power-sleep.nix              lid/power key, suspend-then-hibernate, power profile
   oom.nix                      earlyoom: kills a runaway process before the machine freezes
   performance.nix              sched_ext scheduler, zram memory tuning, BBR networking
   audio-bluetooth.nix          PipeWire, Bluetooth
-  desktop.nix                  greetd + tuigreet (login), Hyprland, portals, udisks
+  desktop.nix                  greetd (tuigreet as fallback login), Hyprland, portals, udisks
+  ctos-greeter.nix             ctOS login screen: packaged from a pinned commit, coloured from the palette
   podman.nix                   rootless Podman with docker compat
   stylix.nix                   theme, fonts, opacity
   users.nix                    user account, zsh, sudo-rs
 home/                          home-manager modules, one topic per file
   shell.nix  git.nix  cli.nix  session.nix  hyprland.nix
-  lock-idle.nix                lock screen (hyprlock) and idle behaviour (hypridle)
-  bar.nix                      ashell: bar, notifications, volume/brightness overlay
+  lock-idle.nix                locking (ctOS lock screen, hyprlock as fallback) and idle behaviour (hypridle)
+  bar.nix                      Waybar (bar) and mako (notifications)
+  launcher.nix                 hyprlauncher, and the colours/fonts of every hyprtoolkit app
   lib/hyprland-bind.nix        helpers for Hyprland key bindings (used by hyprland.nix, desktop-extras.nix)
   editor/neovim/               nixvim, one file per topic (see the Editor section)
   yazi.nix                     Yazi file manager
   identity.nix                 name + email, shared by git.nix and jujutsu.nix
   jujutsu.nix                  jj (colocated with git), jjui, SSH agent
-  desktop-scripts.nix          power menu, screenshots (+ editor), clipboard and emoji pickers, wdisplays
+  desktop-scripts.nix          power menu, volume/brightness overlay, screenshots (+ editor), window/clipboard pickers
   desktop-extras.nix           optional: night light, colour picker, screen recorder
+  monitors.nix                 hyprdynamicmonitors: monitor layout per connected screens and lid state
   battery-warning.nix          notification at 20% and 10% battery
-  window-switcher.nix          alt-tab window switcher (hyprshell)
-  ghostty-cursor.nix           animated cursor trail in Ghostty (custom shader)
-docs/                          Neovim docs, devshell contract, jj and oo7 notes
+docs/                          Neovim docs, devshell contract, jj and oo7 notes, open questions
 assets/nix-bg.png              wallpaper used by Stylix
 ```
 
@@ -175,7 +177,7 @@ Every step from a blank USB stick to the finished desktop:
 
 4. **Get the repository.** The first command opens a shell that has `git` and `nom`
    (nix-output-monitor, which shows the install's build progress in step 7); stay in it until the
-   end.
+   end: the `system` variable of step 7 also lives only in this shell.
 
    ```bash
    nix-shell -p git nix-output-monitor
@@ -214,6 +216,15 @@ Every step from a blank USB stick to the finished desktop:
 
    It should show the RAM in GiB, rounded up (16 for 16 GiB).
 
+   Commit these edits right away. Nix warns "Git tree is dirty" for every command run on a
+   repository with uncommitted changes; after this commit, steps 6 and 7 run without warnings.
+   The live USB has no git identity, so the commit is signed with a temporary one that step 11
+   replaces with yours:
+
+   ```bash
+   git -c user.name=installer -c user.email=installer@localhost commit -am "g15: installed with disko"
+   ```
+
 6. **Partition, encrypt, format and mount.** This is the step that erases the disk. It asks you
    to choose a passphrase for the swap partition and then for the root partition. Use the same
    one for both, so the boot asks only once.
@@ -228,21 +239,37 @@ Every step from a blank USB stick to the finished desktop:
    findmnt -R /mnt
    ```
 
-7. **Install.** `nh` cannot install onto a new disk, so this step uses NixOS's own installer. It
-   downloads the system and compiles bootvine and lanzaboote, so it takes a while. Its build output
-   goes through `nom`, the same progress tree `nh` shows:
+7. **Install.** `nh` cannot install onto a new disk, so this step uses NixOS's own installer, in
+   two parts: first the system is built onto the new disk with `nom` showing the progress tree
+   (the same one `nh` shows), then `nixos-install` installs it and the boot loader. The build
+   downloads the system and compiles bootvine and lanzaboote, so it takes a while.
 
    ```bash
-   sudo nixos-install --flake .#g15 --no-root-passwd --log-format internal-json -v |& nom --json
+   sudo nix --experimental-features 'nix-command flakes' build .#nixosConfigurations.g15.config.system.build.toplevel --store /mnt --eval-store auto --no-link --log-format internal-json -v |& nom --json
    ```
 
+   ```bash
+   system=$(nix --experimental-features 'nix-command flakes' eval --raw .#nixosConfigurations.g15.config.system.build.toplevel.outPath)
+   ```
+
+   ```bash
+   sudo nixos-install --system "$system" --no-root-passwd
+   ```
+
+   - `--store /mnt` puts the built system on the new disk; the USB stick's own store lives in
+     RAM and is too small for it.
+   - `--eval-store auto` keeps the build recipes (`.drv` files) in the USB stick's store, where
+     `nom` can read them. (Piping `nixos-install` itself into `nom` works too, but then the
+     recipes are only on `/mnt` and `nom` prints `DerivationReadError … does not exist` all the
+     way through.)
    - `--log-format internal-json -v` makes Nix print machine-readable progress, which
      `nom --json` draws as a tree. `|&` sends both output streams to `nom`.
-   - `--no-root-passwd` skips the root password prompt at the end, which would be hidden behind
-     `nom`. No root password is needed: your user is an admin through the `wheel` group, and
-     step 8 sets its password.
-   - Without `nom`, plain `sudo nixos-install --flake .#g15` works too (it then asks for a root
-     password at the end).
+   - The second command looks up the path of what was just built; `nixos-install --system`
+     installs exactly that, without building again.
+   - `--no-root-passwd`: no root password is needed. Your user is an admin through the `wheel`
+     group, and step 8 sets its password.
+   - Without `nom`, plain `sudo nixos-install --flake .#g15` does all of this in one step (it
+     then asks for a root password at the end).
 
 8. **Set your own password.** The config sets none on purpose, and without one you cannot log in:
 
@@ -271,12 +298,12 @@ Every step from a blank USB stick to the finished desktop:
     reboot
     ```
 
-    bootvine asks for the disk passphrase, then the login screen (tuigreet) asks for user `mateus` and the password from
+    bootvine asks for the disk passphrase, then the ctOS login screen asks for the password of `mateus` and the password from
     step 8. Hyprland starts after login. `SUPER + Return` opens a terminal.
 
 11. **Finish.** Connect to Wi-Fi from the bar (click the icons on the right). Then confirm that
     rebuilding works from the installed system (`nh` is installed now, so the aliases work) and
-    record the edits from step 5:
+    put your own name on the commit from step 5:
 
     ```bash
     cd ~/Code/nix-config
@@ -287,7 +314,7 @@ Every step from a blank USB stick to the finished desktop:
     ```
 
     ```bash
-    git commit -am "g15: installed with disko"
+    git commit --amend --reset-author --no-edit
     ```
 
 12. **Secure Boot:** continue with [C. Turn on Secure Boot](#c-turn-on-secure-boot-after-path-a-or-b).
@@ -423,7 +450,7 @@ Nothing is throttled to save battery: the panel stays at 120 Hz and Wi-Fi power 
 
 `modules/nixos/oom.nix` runs earlyoom. When less than 10% of RAM is available and less than 20% of swap
 is free, it ends the biggest process (SIGTERM, then SIGKILL at half those values) instead of letting the
-desktop freeze. It avoids the session (Hyprland, ashell, PipeWire, oo7, ...), prefers browser tab
+desktop freeze. It avoids the session (Hyprland, Waybar, mako, PipeWire, oo7, ...), prefers browser tab
 processes, and sends a desktop notification naming what it killed.
 
 ## Disks (disko)
@@ -601,8 +628,14 @@ tutorials match.
 - **Start it:** `y` in zsh (cds to Yazi's last folder when you quit with `q`), or
   `SUPER+E` (opens it in Ghostty). It is the only file manager.
 - **Openers:** text and code → `$EDITOR` (Neovim), images → imv, audio/video → mpv, PDF →
-  zathura, archives → Yazi's extract (7zip), anything else → `xdg-open`. These are also the
-  desktop defaults. Directories open in Yazi (in a Ghostty window), and `text/plain` in Mousepad.
+  tdf (in the terminal), archives → Yazi's extract (7zip), anything else → `xdg-open`. These are
+  also the desktop defaults. Directories open in Yazi, `text/plain` in Neovim and PDFs in tdf,
+  each in a Ghostty window.
+- **File dialogs:** when an app asks to open or save a file (LibreWolf's upload or download
+  dialog), Yazi opens in a floating window instead of a GTK dialog
+  (xdg-desktop-portal-termfilechooser). Pick a file with `Enter` (several: `Space` first, then
+  `Enter`); to save, go to the folder, edit the name in the file it shows, and quit. `q` without
+  choosing cancels.
 - **Previews:** images (kitty graphics protocol, native in Ghostty), video, PDF, archives,
   SVG, JSON, Markdown and code. The tools come with nixpkgs' Yazi wrapper.
 - **Plugins** (from nixpkgs `yaziPlugins`): git status signs, mount (`M`, also for USB
@@ -615,31 +648,42 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
 
 | Key | Does |
 | --- | --- |
-| `ALT+Tab` / `ALT+SHIFT+Tab` | window switcher with previews, most recent first; release `ALT` to switch, `q` closes the selected window |
+| `ALT+Tab` | window picker (hyprlauncher), most recently used first: `ALT+Tab` then `Enter` jumps back to the previous window; type to filter, arrows to move |
 | `SUPER+1`…`SUPER+0` | workspaces 1–10; with `SHIFT`, move the window there |
 | three-finger swipe left/right | previous / next workspace |
-| `SUPER+Escape` | lock |
-| `SUPER+SHIFT+Escape` | power menu (fuzzel): lock, suspend, hibernate, reboot, poweroff, logout. Nothing happens unless you pick one |
+| `SUPER+L` / `SUPER+Escape` | lock (the ctOS lock screen) |
+| `SUPER` + arrows, or `SUPER+H/J/K` | focus the window left / down / up / right; with `SHIFT` (and `H/J/K/L`), move it |
+| `SUPER+SHIFT+Escape` | power menu (hyprlauncher): lock, suspend, hibernate, reboot, poweroff, logout. Nothing happens unless you pick one; reboot, poweroff and logout close every app first (hyprshutdown) |
 | `Print` | region screenshot to the clipboard |
 | `Shift+Print` / `Ctrl+Print` | region / full screen to `~/Pictures/Screenshots`, with a notification |
 | `SUPER+Print` | region opened in satty to draw arrows, text or blur; `Ctrl+S` saves, `Ctrl+C` copies |
 | `SUPER+SHIFT+V` | clipboard history (cliphist, started with the session) |
-| `SUPER+.` | emoji picker (fuzzel): types the emoji and copies it |
+| `SUPER+.` | emoji picker (hyprlauncher): copies the emoji; paste it with `Ctrl+V` |
 | `XF86AudioPlay/Next/Prev` | media control via playerctl, sent to the last used player (playerctld) |
-| Volume / brightness / mute keys | change the value and show it in ashell's on-screen display (5% steps, volume up to 150%) |
-| `SUPER+M` | log out |
+| Volume / brightness / mute keys | change the value and show it in a small notification with a bar, bottom centre (5% steps, volume up to 150%) |
+| `SUPER+M` | log out (apps are closed first, so they can save) |
+| `SUPER+SHIFT+M` | monitor rescue: drop the generated layout and turn every screen on (use it if a screen stays dark) |
 
-- The bar is ashell (`home/bar.nix`): workspaces, window title, CPU/memory/temperature, tray, clock (click for a calendar) and a settings group. Clicking the settings group opens a panel for volume, Wi-Fi, Bluetooth, brightness, power profile and lock/suspend/hibernate/reboot/poweroff/logout. Right-clicking the speaker opens pwvucontrol (volume mixer); right-clicking Bluetooth opens overskride (pairing).
-- Notifications are ashell's too: popups in the top-right corner, and the bell in the bar keeps the list (click it to see them, right-click for do not disturb). They are kept in memory until you log out.
-- Wi-Fi and Bluetooth are handled in that panel; there are no separate tray applets. Bluetooth is on from boot; turn it off there when you don't need it. For VPNs or editing a connection use `nmtui` in a terminal.
-- Login: greetd runs tuigreet, a text login prompt in the palette colours, which remembers the last user and session. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
+- The bar is Waybar (`home/bar.nix`): workspaces and window title on the left, the clock in the middle (hover for a calendar), and on the right CPU, memory, temperature, volume, brightness, Wi-Fi, Bluetooth, power profile, battery, tray, the bell and POWER. Clicks:
+  - `VOL`: hyprpwcenter, the mixer (outputs, inputs, per-app volume); right-click mutes, scroll changes the volume
+  - `BRI`: scroll changes the brightness
+  - `NET`: nmtui (Wi-Fi networks, VPNs, editing connections); `BT`: bluetui (scan, pair, connect). Both open in a floating terminal window
+  - `PWR`: cycles power-saver / balanced / performance
+  - `BELL`/`DND`: do not disturb on/off (low-battery warnings still show); right-click brings back the last dismissed notification
+  - `POWER`: the power menu
+- Notifications are mako's: popups in the top-right corner, gone after 5 seconds (click one to dismiss it).
+- Bluetooth is on from boot; turn it off in bluetui when you don't need it.
+- Login: greetd runs the ctOS greeter (`modules/nixos/ctos-greeter.nix`), an animated "terminal" login inspired by Watch Dogs' ctOS, in the palette colours, with real information instead of upstream's made-up texts (your name, the machine, NixOS and kernel versions, timezone); its logos are upstream's: it types out a boot sequence, then asks for the password of the first user (`mateus`) and starts Hyprland. Instead of a password you can type commands: `help`, `users`, `desktops`, `chusr <name>`, `chdesk <name>`. It runs in cage, a small kiosk compositor, with Quickshell from nixpkgs; the source is pinned to one commit, so updating it means changing `rev` and `hash` in that file. If it ever fails to start, `Ctrl+Alt+F2` gives a text login, and `my.ctosGreeter.enable = false;` brings back tuigreet, a text login prompt. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
 - Browser: LibreWolf (Firefox with privacy and security settings on by default, uBlock Origin included). It deletes cookies and history when it closes; change that in its Settings → Privacy & Security if you want to stay logged in.
-- The lock screen (hyprlock, `SUPER+Escape`) shows the time, the date, a greeting and the battery level over the wallpaper, in the palette colours (`home/lock-idle.nix`).
-- The launcher is fuzzel (`SUPER+D`). The power menu, the clipboard picker and the emoji picker use it too.
+- The lock screen is ctOS too (`SUPER+L`, `SUPER+Escape`, after 10 idle minutes and before suspend): `ctos-lock`, run by hypridle (`home/lock-idle.nix`), with shorter animations than at login. If it ever froze: `Ctrl+Alt+F2`, log in, run `hyprctl --instance 0 dispatch 'hl.dsp.exec_cmd("ctos-lock")'` (Hyprland lets a new lock screen replace a crashed one), then `Ctrl+Alt+F1`. With `my.ctosGreeter.enable = false;` hyprlock is the lock screen again.
+- Hyprland's own animations match it (`home/hyprland.nix`): short and mechanical, no bounce. Windows grow in from 90% and shrink away, the bar, launcher and notifications slide in from their edge, workspaces slide sideways.
+- The launcher is hyprlauncher (`SUPER+D`, `home/launcher.nix`): apps, plus emoji after `.`, maths after `=` and fonts after `'`. The power menu, the clipboard picker and the window picker use it too. The Hypr tools (launcher, mixer, password prompts, shutdown screen, `hyprsysteminfo`) share one look set from the Stylix palette.
 - Keyboard: US with accents on `AltGr` (right Alt): `AltGr+,` = ç, `AltGr+'` then a vowel = á, `AltGr+~` then a = ã. Plain `'` and `"` still type at once.
-- Ghostty draws a short fading streak when the cursor jumps (not while typing); see `home/ghostty-cursor.nix`.
-- `wdisplays` arranges monitors visually. It does not save anything: copy the resulting positions into the monitor list in `home/hyprland.nix`.
-- Small utility windows float centred instead of tiling: the mixer, Bluetooth manager, screenshot editor, wdisplays and file dialogs (`window_rule` in `home/hyprland.nix`).
+- Monitors are arranged by hyprdynamicmonitors (`home/monitors.nix`), which switches the layout when you plug in a screen or close the lid: laptop only (panel at 120 Hz), docked (external screen on the left at its highest refresh rate, panel on the right), docked with the lid closed (external screen only). `hyprdynamicmonitors tui` shows the screens and which profile is active; put lasting changes into `home/monitors.nix`.
+- Small utility windows float centred instead of tiling: the mixer and system info, Wi-Fi, Bluetooth and file dialogs (started as `ghostty --class=tui.<name>`) and the screenshot editor (`window_rule` in `home/hyprland.nix`).
+- Password prompts for apps that need administrator rights come from hyprpolkitagent (hyprtoolkit, no GTK/Qt).
+- Portals: Hyprland's own portal handles screenshots, screen sharing and global shortcuts (assigned by name in `modules/nixos/desktop.nix`); open/save dialogs are Yazi.
+- No Qt theme and no `nvidia-settings`: nothing installed uses Qt, and `nvidia-smi` shows the GPU's state in a terminal.
 - Optional, off by default, in `home/desktop-extras.nix`:
   - `my.desktop.nightLight.enable`: hyprsunset, warmer colours from 20:00.
   - `my.desktop.colorPicker.enable`: hyprpicker on `SUPER+SHIFT+C`.
@@ -701,6 +745,12 @@ builds would run out of memory).
 - **Nix daemon:** only `wheel` members may build or add to the store (`allowed-users` in
   `modules/nixos/nix.nix`).
 - **`/tmp` is emptied at every boot** (`boot.tmp.cleanOnBoot` in `modules/nixos/boot.nix`).
+- **Kernel and network** (`modules/nixos/hardening.nix`): kernel addresses hidden, `dmesg` only
+  with `sudo`, ICMP redirects and source-routed packets ignored.
+- **Locking before sleep:** suspend waits until the lock screen is really up
+  (`inhibit_sleep` in `home/lock-idle.nix`), so the desktop never shows on resume.
+- **Login screen:** runs as its own `greeter` user, Wayland only (no X server behind it).
+- **CI:** read-only token, GitHub Actions pinned to commits, no credentials left in the checkout.
 - Also: Secure Boot with your own keys (lanzaboote), full-disk encryption (LUKS), nftables
   firewall, rootless Podman, oo7 as the only keyring, and LibreWolf as the browser.
 
@@ -719,30 +769,25 @@ locally.
 
 ## Testing
 
-These checks ran before this layout was committed, and all of them pass:
+Testing happens in **CI** (`.github/workflows/ci.yml`), on every pull request and every push to
+`main`. Changes go through a pull request, and it is merged only when CI passes. CI runs:
 
-```bash
-nix flake check --no-build
-```
+1. the nixfmt formatting check
+2. `nix flake check`: evaluates the whole NixOS and home-manager configuration
+3. Hyprland's own config check (`Hyprland --verify-config`), once without a monitor layout and once
+   for each hyprdynamicmonitors profile, with the profile filled in with example screen names
+4. a simulation of every monitor profile with a fake Hyprland: with only the laptop panel connected
+   (or none listed yet, as at startup) no profile switches the panel off; with an external screen,
+   each profile gives the expected layout
+5. the login screen: the ctOS greeter is started the way greetd starts it (kiosk mode in cage), on a
+   headless screen; it must still be running after a few seconds and must have drawn its screen
+6. `hyprdynamicmonitors validate` on the generated config
+7. the full system build, the same `nix build` the laptop runs
 
-```bash
-nix eval .#nixosConfigurations.g15.config.system.build.toplevel.drvPath
-```
+Results show up on the pull request ("Checks") and under the repository's Actions tab.
 
-```bash
-nix build .#nixosConfigurations.g15.config.system.build.diskoScript
-```
-
-The first checks the flake outputs and evaluates the whole NixOS configuration. The second
-instantiates the system closure. The third builds the disko partitioning script without
-running it.
-
-**CI** (`.github/workflows/ci.yml`) runs on every pull request and every push to `main`: the
-nixfmt formatting check and `nix flake check --no-build`. It evaluates only; it does not build the
-system. It currently does not start at all because of a billing problem on the GitHub account.
-
-There are no automated tests of the running machine or of the Neovim config. After a switch,
-`systemctl --failed` and `systemctl --user --failed` show services that did not start.
+There are no automated tests of the running machine. After a switch, `systemctl --failed` and
+`systemctl --user --failed` show services that did not start.
 
 ## License
 

@@ -1,12 +1,18 @@
-# Lock screen (hyprlock) and idle behaviour (hypridle). SUPER+Escape locks; hypridle dims the
+# Lock screen and idle behaviour (hypridle). SUPER+L or SUPER+Escape locks; hypridle dims the
 # screen after 5 minutes, locks after 10, turns the screen off after 11 and suspends after 30.
-# Stylix sets hyprlock's background and colours; the labels below add the time, date, a greeting
-# and the battery.
-{ pkgs, ... }:
+#
+# The lock screen is ctOS (`ctos-lock`, modules/nixos/ctos-greeter.nix), the same program as the
+# login screen. hyprlock below is the fallback, used only when `my.ctosGreeter.enable = false`;
+# Stylix sets its background and colours, the labels add the time, date, a greeting and battery.
+{ osConfig, pkgs, ... }:
 
+let
+  ctos = osConfig.my.ctosGreeter.enable;
+  hyprlock = pkgs.writeShellScript "hypr-lock" "${pkgs.procps}/bin/pgrep -x hyprlock || exec ${pkgs.hyprlock}/bin/hyprlock";
+in
 {
   programs.hyprlock = {
-    enable = true;
+    enable = !ctos;
     settings.label = [
       # clock
       {
@@ -55,8 +61,12 @@
     enable = true;
     settings = {
       general = {
-        lock_cmd = "${pkgs.writeShellScript "hypr-lock" "${pkgs.procps}/bin/pgrep -x hyprlock || exec ${pkgs.hyprlock}/bin/hyprlock"}";
+        # ctos-lock comes from the system profile; it never starts a second locker.
+        lock_cmd = if ctos then "ctos-lock" else "${hyprlock}";
         before_sleep_cmd = "loginctl lock-session";
+        # Hold off suspend until the screen is really locked, so the desktop never shows for a
+        # moment on resume. (hypridle's default only waits when the lock command is hyprlock.)
+        inhibit_sleep = 3;
         # Was misspelled "aftet_sleep_cmd", so hypridle ignored it.
         after_sleep_cmd = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\"})'";
       };

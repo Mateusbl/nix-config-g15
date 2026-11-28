@@ -23,7 +23,7 @@
     extraArgs = [
       # Never pick the session itself. These are matched against process names.
       "--avoid"
-      "Hyprland|ashell|pipewire|wireplumber|oo7-daemon|bootvine|systemd"
+      "Hyprland|waybar|mako|hyprlauncher|pipewire|wireplumber|oo7-daemon|bootvine|systemd"
       # Prefer browser tab processes (LibreWolf uses Firefox's names): losing a tab is better than
       # losing the whole browser.
       "--prefer"

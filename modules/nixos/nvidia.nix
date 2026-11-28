@@ -21,7 +21,9 @@
     # them for Turing and newer; the RTX 3050 Mobile is Ampere. Fine-grained power management
     # (the card switching off when idle) works with them too.
     open = true;
-    nvidiaSettings = true;
+    # The nvidia-settings GUI (GTK3) is not installed: PRIME offload needs no settings app, and
+    # `nvidia-smi` (comes with the driver) shows the card's state in a terminal.
+    nvidiaSettings = false;
     prime = {
       # Verified with: lspci | grep -E "VGA|3D"
       intelBusId = "PCI:0:2:0";

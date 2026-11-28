@@ -32,7 +32,7 @@ in
   # power-profiles-daemon (above) sets the CPU's energy/performance bias. Every boot starts in
   # "balanced", on the charger and on battery. Nothing is throttled to save power (no power-saver
   # profile, no Wi-Fi power saving, the panel stays at 120 Hz). Change it by hand with the power
-  # profile button in the bar's settings panel (`performance` for games or builds); that lasts
+  # profile button in the bar (PWR) (`performance` for games or builds); that lasts
   # until the next reboot.
   systemd.services.power-profile-default = setProfile "balanced" // {
     wantedBy = [ "multi-user.target" ];

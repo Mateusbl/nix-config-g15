@@ -12,7 +12,8 @@
     portalPackage = null;
     # Session services without UWSM: when Hyprland starts, home-manager imports the environment
     # into systemd and starts hyprland-session.target, which pulls in graphical-session.target and
-    # with it ashell, hypridle, hyprpaper, cliphist, ...; when Hyprland exits, it stops them again.
+    # with it Waybar, mako, hyprlauncher, hypridle, hyprpaper, cliphist, ...; when Hyprland exits,
+    # it stops them again.
     # "--all" imports the whole environment (PATH included), as UWSM did, so commands the
     # services run (brightnessctl, hyprctl, ...) are found.
     systemd = {
@@ -31,20 +32,9 @@
         }
       ];
 
-      # hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
+      # hl.monitor({ ... }): only the catch-all for screens without a rule. The real layouts
+      # (laptop, docked, lid closed) come from hyprdynamicmonitors (home/monitors.nix).
       monitor = [
-        {
-          output = "HDMI-A-1";
-          mode = "1920x1080@100";
-          position = "0x0";
-          scale = 1;
-        }
-        {
-          output = "eDP-1";
-          mode = "1920x1080@120";
-          position = "1920x0";
-          scale = 1;
-        }
         {
           output = "";
           mode = "preferred";
@@ -74,7 +64,111 @@
         decoration = {
           rounding = 6;
         };
+
+        # If the lock screen ever crashed, a new one may take over the lock (recovery steps in
+        # modules/nixos/ctos-greeter.nix) instead of the session staying stuck.
+        misc.allow_session_lock_restore = true;
       };
+
+      # Animations in the style of the ctOS login screen: short and mechanical, fast at the start
+      # and settling hard at the end, no bounce. Speed is in tenths of a second (3 = 0.3 s).
+      #   hl.curve(name, { type = "bezier", points = { {x1, y1}, {x2, y2} } })
+      curve = [
+        {
+          _args = [
+            "ctos" # fast out, crisp stop
+            {
+              type = "bezier";
+              points = [
+                [
+                  0.2
+                  0.9
+                ]
+                [
+                  0.1
+                  1.0
+                ]
+              ];
+            }
+          ];
+        }
+        {
+          _args = [
+            "linear"
+            {
+              type = "bezier";
+              points = [
+                [
+                  0.0
+                  0.0
+                ]
+                [
+                  1.0
+                  1.0
+                ]
+              ];
+            }
+          ];
+        }
+      ];
+      # hl.animation({ leaf, enabled, speed, bezier, style }); `enabled` is required
+      animation = [
+        # Windows grow in from 90% of their size and shrink away the same way, like the login
+        # screen's panels.
+        {
+          leaf = "windowsIn";
+          enabled = true;
+          speed = 3;
+          bezier = "ctos";
+          style = "popin 90%";
+        }
+        {
+          leaf = "windowsOut";
+          enabled = true;
+          speed = 2;
+          bezier = "linear";
+          style = "popin 90%";
+        }
+        {
+          leaf = "windowsMove";
+          enabled = true;
+          speed = 3;
+          bezier = "ctos";
+        }
+        # Bar, launcher and notifications slide in from their edge.
+        {
+          leaf = "layers";
+          enabled = true;
+          speed = 3;
+          bezier = "ctos";
+          style = "slide";
+        }
+        {
+          leaf = "fade";
+          enabled = true;
+          speed = 2;
+          bezier = "linear";
+        }
+        # The border colour switches with focus; the rotating border gradient is off.
+        {
+          leaf = "border";
+          enabled = true;
+          speed = 2;
+          bezier = "linear";
+        }
+        {
+          leaf = "borderangle";
+          enabled = false;
+        }
+        # Workspaces slide sideways (like the three-finger swipe) and fade a little.
+        {
+          leaf = "workspaces";
+          enabled = true;
+          speed = 3;
+          bezier = "ctos";
+          style = "slidefade 15%";
+        }
+      ];
 
       # hl.gesture({ fingers, direction, action }): swipe three fingers left/right on the
       # touchpad to change workspace.
@@ -92,38 +186,27 @@
       # the app's .desktop file; `hyprctl clients` shows it for open windows).
       window_rule = [
         {
-          name = "float-mixer";
-          match.class = "^com\\.saivert\\.pwvucontrol$";
+          # Wi-Fi, Bluetooth and file dialogs: terminal apps started with
+          # `ghostty --class=tui.<name>` (home/session.nix, home/bar.nix).
+          name = "float-terminal-tools";
+          match.class = "^tui\\..*$";
+          float = true;
+          center = true;
+          size = "1000 650";
+        }
+        {
+          # Hypr tools: mixer (from the bar's speaker) and system info.
+          name = "float-hypr-tools";
+          match.class = "^(hyprpwcenter|hyprsysteminfo)$";
           float = true;
           center = true;
           size = "900 600";
-        }
-        {
-          name = "float-bluetooth";
-          match.class = "^io\\.github\\.kaii_lb\\.Overskride$";
-          float = true;
-          center = true;
-          size = "700 500";
         }
         {
           name = "float-screenshot-editor";
           match.class = "^com\\.gabm\\.satty$";
           float = true;
           center = true;
-        }
-        {
-          name = "float-display-settings";
-          match.class = "^network\\.cycles\\.wdisplays$";
-          float = true;
-          center = true;
-          size = "1000 700";
-        }
-        {
-          name = "float-file-dialogs";
-          match.class = "^xdg-desktop-portal-gtk$";
-          float = true;
-          center = true;
-          size = "1000 700";
         }
       ];
 
@@ -137,29 +220,34 @@
           # Launchers & session
           (bindCall "SUPER + Return" ''hl.dsp.exec_cmd("ghostty")'')
           (bindCall "SUPER + Q" "hl.dsp.window.close()")
-          (bindCall "SUPER + M" "hl.dsp.exit()") # log out
+          (bindCall "SUPER + M" ''hl.dsp.exec_cmd("hyprshutdown -t 'Logging out...'")'') # log out, apps close first
           (bindCall "SUPER + E" ''hl.dsp.exec_cmd("ghostty -e yazi")'') # file manager
-          (bindCall "SUPER + D" ''hl.dsp.exec_cmd("fuzzel")'')
+          (bindCall "SUPER + D" ''hl.dsp.exec_cmd("hyprlauncher")'') # launcher (home/launcher.nix)
           (bindCall "SUPER + V" ''hl.dsp.window.float({ action = "toggle" })'')
           (bindCall "SUPER + F" "hl.dsp.window.fullscreen()")
+
+          # Alt-tab: a list of the windows, most recently used first (desktop-scripts.nix)
+          (bindCall "ALT + Tab" ''hl.dsp.exec_cmd("window-pick")'')
 
           # Screenshots: region to clipboard; Shift = region to file; Ctrl = full screen to file
           (bindCall "Print" ''hl.dsp.exec_cmd("grim -g \"$(slurp)\" - | wl-copy")'')
           (bindCall "SHIFT + Print" ''hl.dsp.exec_cmd("screenshot region")'')
           (bindCall "CTRL + Print" ''hl.dsp.exec_cmd("screenshot full")'')
+          # Region opened in an editor (arrows, text, blur) before saving
+          (bindCall "SUPER + Print" ''hl.dsp.exec_cmd("screenshot edit")'')
 
           # Clipboard history
           (bindCall "SUPER + SHIFT + V" ''hl.dsp.exec_cmd("clipboard-pick")'')
 
-          # Screenshot of a region, opened in an editor (arrows, text, blur) before saving
-          (bindCall "SUPER + Print" ''hl.dsp.exec_cmd("screenshot edit")'')
+          # Emoji picker: hyprlauncher's emoji search; the chosen one is copied (paste with Ctrl+V)
+          (bindCall "SUPER + period" ''hl.dsp.exec_cmd("hyprlauncher -f unicode")'')
 
-          # Emoji picker: types the chosen emoji and also copies it
-          (bindCall "SUPER + period" ''hl.dsp.exec_cmd("emoji-pick")'')
-
-          # Focus
+          # Focus: SUPER + arrows, or SUPER + H/K/J (L is lock, below)
+          (bindCall "SUPER + left" ''hl.dsp.focus({ direction = "left" })'')
+          (bindCall "SUPER + right" ''hl.dsp.focus({ direction = "right" })'')
+          (bindCall "SUPER + up" ''hl.dsp.focus({ direction = "up" })'')
+          (bindCall "SUPER + down" ''hl.dsp.focus({ direction = "down" })'')
           (bindCall "SUPER + H" ''hl.dsp.focus({ direction = "left" })'')
-          (bindCall "SUPER + L" ''hl.dsp.focus({ direction = "right" })'')
           (bindCall "SUPER + K" ''hl.dsp.focus({ direction = "up" })'')
           (bindCall "SUPER + J" ''hl.dsp.focus({ direction = "down" })'')
 
@@ -168,7 +256,8 @@
           (bindCall "SUPER + SHIFT + L" ''hl.dsp.window.move({ direction = "right" })'')
           (bindCall "SUPER + SHIFT + K" ''hl.dsp.window.move({ direction = "up" })'')
           (bindCall "SUPER + SHIFT + J" ''hl.dsp.window.move({ direction = "down" })'')
-          # Lock and power
+          # Lock (the ctOS lock screen, home/lock-idle.nix) and power
+          (bindCall "SUPER + L" ''hl.dsp.exec_cmd("loginctl lock-session")'')
           (bindCall "SUPER + Escape" ''hl.dsp.exec_cmd("loginctl lock-session")'')
           # Power menu (lock/suspend/reboot/poweroff/logout); needs an explicit choice.
           (bindCall "SUPER + SHIFT + Escape" ''hl.dsp.exec_cmd("power-menu")'')
@@ -201,21 +290,21 @@
           ]
         ) (lib.range 1 10)
         ++ [
-          # Volume & brightness keys (work when locked, repeat when held). ashell changes the value
-          # and shows it in its on-screen display (osd settings in home/session.nix).
-          (bindOpts "XF86AudioRaiseVolume" ''hl.dsp.exec_cmd("ashell msg volume-up")'' {
+          # Volume & brightness keys (work when locked, repeat when held). `osd` changes the value
+          # and shows it as a notification with a bar (desktop-scripts.nix).
+          (bindOpts "XF86AudioRaiseVolume" ''hl.dsp.exec_cmd("osd volume-up")'' {
             locked = true;
             repeating = true;
           })
-          (bindOpts "XF86AudioLowerVolume" ''hl.dsp.exec_cmd("ashell msg volume-down")'' {
+          (bindOpts "XF86AudioLowerVolume" ''hl.dsp.exec_cmd("osd volume-down")'' {
             locked = true;
             repeating = true;
           })
-          (bindOpts "XF86MonBrightnessUp" ''hl.dsp.exec_cmd("ashell msg brightness-up")'' {
+          (bindOpts "XF86MonBrightnessUp" ''hl.dsp.exec_cmd("osd brightness-up")'' {
             locked = true;
             repeating = true;
           })
-          (bindOpts "XF86MonBrightnessDown" ''hl.dsp.exec_cmd("ashell msg brightness-down")'' {
+          (bindOpts "XF86MonBrightnessDown" ''hl.dsp.exec_cmd("osd brightness-down")'' {
             locked = true;
             repeating = true;
           })
@@ -227,10 +316,10 @@
           (bindOpts "XF86AudioPrev" ''hl.dsp.exec_cmd("playerctl previous")'' { locked = true; })
 
           # Mute keys
-          (bindOpts "XF86AudioMute" ''hl.dsp.exec_cmd("ashell msg volume-toggle-mute")'' {
+          (bindOpts "XF86AudioMute" ''hl.dsp.exec_cmd("osd volume-mute")'' {
             locked = true;
           })
-          (bindOpts "XF86AudioMicMute" ''hl.dsp.exec_cmd("ashell msg microphone-toggle-mute")'' {
+          (bindOpts "XF86AudioMicMute" ''hl.dsp.exec_cmd("osd mic-mute")'' {
             locked = true;
           })
 

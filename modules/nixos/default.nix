@@ -12,9 +12,11 @@
     ./performance.nix
     ./audio-bluetooth.nix
     ./desktop.nix
+    ./ctos-greeter.nix
     ./podman.nix
     ./stylix.nix
     ./users.nix
     ./secrets.nix
+    ./hardening.nix
   ];
 }
