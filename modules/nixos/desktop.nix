@@ -7,22 +7,26 @@
 }:
 
 {
-  # Login screen: greetd, a small login daemon that runs the greeter as its own unprivileged user,
-  # with tuigreet as the greeter (a text login prompt on the console). It lists the installed
+  # Login screen: greetd, a small login daemon that runs the greeter as its own unprivileged user.
+  # The greeter is ctOS (modules/nixos/ctos-greeter.nix); tuigreet below, a text login prompt on
+  # the console, is the fallback used when `my.ctosGreeter.enable = false`. It lists the installed
   # sessions (Hyprland) and remembers the last user and session. Its colours are the console's
   # 16 colours, which Stylix already sets to the palette, so names like "blue" are base0D.
   services.greetd = {
     enable = true;
-    useTextGreeter = true; # keeps boot messages from drawing over the prompt
-    settings.default_session.command = lib.concatStringsSep " " [
-      "${pkgs.tuigreet}/bin/tuigreet"
-      "--time"
-      "--remember"
-      "--remember-session"
-      "--asterisks"
-      "--sessions ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions"
-      "--theme 'border=blue;text=white;prompt=cyan;time=blue;action=blue;button=cyan;container=black;input=white'"
-    ];
+    # For the text greeter only: keeps boot messages from drawing over its prompt.
+    useTextGreeter = !config.my.ctosGreeter.enable;
+    settings.default_session.command = lib.mkDefault (
+      lib.concatStringsSep " " [
+        "${pkgs.tuigreet}/bin/tuigreet"
+        "--time"
+        "--remember"
+        "--remember-session"
+        "--asterisks"
+        "--sessions ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions"
+        "--theme 'border=blue;text=white;prompt=cyan;time=blue;action=blue;button=cyan;container=black;input=white'"
+      ]
+    );
   };
 
   programs.hyprland = {

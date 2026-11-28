@@ -6,8 +6,9 @@
 #      template is filled in with example connector names and loaded through hyprland.lua
 #   4. a simulation of every monitor profile: the laptop panel is never switched off unless
 #      another screen is connected
-#   5. hyprdynamicmonitors' own config check
-#   6. the full system build, the same `nix build` the laptop runs
+#   5. the login screen (ctOS greeter) starts headless and draws its screen
+#   6. hyprdynamicmonitors' own config check
+#   7. the full system build, the same `nix build` the laptop runs
 name: CI
 
 on:
@@ -135,6 +136,46 @@ jobs:
               *) fail "unknown profile $name: add its expectations here" ;;
             esac
           done
+
+      # Starts the login screen (ctOS, modules/nixos/ctos-greeter.nix) the way greetd does, kiosk
+      # mode inside cage, on a headless screen with software rendering. It must still be running
+      # after a few seconds (ctOS quits on errors in its config) and must have drawn a real screen.
+      - name: Login screen starts (ctOS greeter, headless)
+        run: |
+          sys='.#nixosConfigurations.g15'
+          build() { nix build --no-link --print-out-paths "$1"; }
+          ctos=$(build "$sys.config.system.build.ctosGreeter")
+          fonts=$(build "$sys.config.system.build.ctosGreeter.fontsConf")
+          conf=$(build "$sys.config.environment.etc.\"ctos/greeter.config.json\".source")
+          qs=$(build "$sys.pkgs.quickshell")
+          cage=$(build "$sys.pkgs.cage")
+          grim=$(build "$sys.pkgs.grim")
+          magick=$(build "$sys.pkgs.imagemagick")
+
+          # What the NixOS module and its tmpfiles rules create on the laptop.
+          sudo install -Dm644 "$conf" /etc/ctos/greeter.config.json
+          sudo install -d -m 777 /var/lib/ctos
+          echo '{}' > /var/lib/ctos/greeter.state.json
+
+          XDG_RUNTIME_DIR=$(mktemp -d)
+          chmod 700 "$XDG_RUNTIME_DIR"
+          export XDG_RUNTIME_DIR WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 \
+            LIBSEAT_BACKEND=noop QT_QUICK_BACKEND=software FONTCONFIG_FILE="$fonts" \
+            CTOS_MODE=kiosk HOME="$(mktemp -d)"
+          work=$(mktemp -d)
+          "$cage/bin/cage" -d -- "$qs/bin/quickshell" --path "$ctos/share/ctos/greeter.qml" > "$work/log" 2>&1 &
+          cage_pid=$!
+          sleep 12
+
+          fail() { echo "::error::$1"; sed 's/\x1b\[[0-9;]*m//g' "$work/log"; exit 1; }
+          kill -0 "$cage_pid" 2>/dev/null || fail "the greeter exited"
+          ! grep -q CRITICAL "$work/log" || fail "the greeter reported a critical error"
+          display=$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -name 'wayland-[0-9]' -printf '%f\n' | head -1)
+          WAYLAND_DISPLAY=$display "$grim/bin/grim" "$work/screen.png"
+          colours=$("$magick/bin/magick" "$work/screen.png" -format %k info:)
+          echo "colours on screen: $colours"
+          [ "$colours" -gt 16 ] || fail "the screen is (nearly) blank"
+          kill "$cage_pid"
 
       - name: hyprdynamicmonitors config check
         run: |

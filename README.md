@@ -2,7 +2,7 @@
 
 My NixOS flake for a **Dell G15 5511** (Intel TigerLake-H + NVIDIA RTX 3050 Mobile).
 
-- **Desktop:** Hyprland (Lua config), greetd with tuigreet (login), Waybar (bar), mako (notifications), and the Hypr tools wherever one exists: hyprlauncher (launcher), hyprpwcenter (mixer), hyprpolkitagent, hyprshutdown, hyprlock/hypridle/hyprpaper, all on Hyprland's own toolkit (hyprtoolkit). Ghostty and LibreWolf. The only other GTK app is satty (screenshot editor); Bluetooth, Wi-Fi, file dialogs, the PDF viewer and text editing are terminal programs
+- **Desktop:** Hyprland (Lua config), greetd with the animated ctOS login screen (Quickshell), Waybar (bar), mako (notifications), and the Hypr tools wherever one exists: hyprlauncher (launcher), hyprpwcenter (mixer), hyprpolkitagent, hyprshutdown, hyprlock/hypridle/hyprpaper, all on Hyprland's own toolkit (hyprtoolkit). Ghostty and LibreWolf. The only other GTK app is satty (screenshot editor); Bluetooth, Wi-Fi, file dialogs, the PDF viewer and text editing are terminal programs
 - **Theme:** Stylix with a blue base16 palette on a deep navy background (`modules/nixos/stylix.nix`), Papirus icons and the Bibata cursor. The wallpaper is `assets/nix-bg.png` tinted to that palette at build time, and the login screen uses the same colours
 - **Disks:** declared with [disko](https://github.com/nix-community/disko): LUKS + btrfs, plus encrypted swap used for hibernation
 - **User environment:** home-manager as a NixOS module
@@ -32,7 +32,8 @@ modules/nixos/                 shared system modules, one topic per file
   oom.nix                      earlyoom: kills a runaway process before the machine freezes
   performance.nix              sched_ext scheduler, zram memory tuning, BBR networking
   audio-bluetooth.nix          PipeWire, Bluetooth
-  desktop.nix                  greetd + tuigreet (login), Hyprland, portals, udisks
+  desktop.nix                  greetd (tuigreet as fallback login), Hyprland, portals, udisks
+  ctos-greeter.nix             ctOS login screen: packaged from a pinned commit, coloured from the palette
   podman.nix                   rootless Podman with docker compat
   stylix.nix                   theme, fonts, opacity
   users.nix                    user account, zsh, sudo-rs
@@ -296,7 +297,7 @@ Every step from a blank USB stick to the finished desktop:
     reboot
     ```
 
-    bootvine asks for the disk passphrase, then the login screen (tuigreet) asks for user `mateus` and the password from
+    bootvine asks for the disk passphrase, then the ctOS login screen asks for the password of `mateus` and the password from
     step 8. Hyprland starts after login. `SUPER + Return` opens a terminal.
 
 11. **Finish.** Connect to Wi-Fi from the bar (click the icons on the right). Then confirm that
@@ -670,7 +671,7 @@ Optional: `my.neovim.optional.yazi.enable = true;` adds yazi.nvim on `<leader>y`
   - `POWER`: the power menu
 - Notifications are mako's: popups in the top-right corner, gone after 5 seconds (click one to dismiss it).
 - Bluetooth is on from boot; turn it off in bluetui when you don't need it.
-- Login: greetd runs tuigreet, a text login prompt in the palette colours, which remembers the last user and session. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
+- Login: greetd runs the ctOS greeter (`modules/nixos/ctos-greeter.nix`), an animated "terminal" login inspired by Watch Dogs' ctOS, in the palette colours: it types out a boot sequence, then asks for the password of the first user (`mateus`) and starts Hyprland. Instead of a password you can type commands: `help`, `users`, `desktops`, `chusr <name>`, `chdesk <name>`. It runs in cage, a small kiosk compositor, with Quickshell from nixpkgs; the source is pinned to one commit, so updating it means changing `rev` and `hash` in that file. If it ever fails to start, `Ctrl+Alt+F2` gives a text login, and `my.ctosGreeter.enable = false;` brings back tuigreet, a text login prompt. After login, home-manager starts the session services (bar, idle, wallpaper, clipboard, ...) with Hyprland and stops them when you log out; there is no UWSM.
 - Browser: LibreWolf (Firefox with privacy and security settings on by default, uBlock Origin included). It deletes cookies and history when it closes; change that in its Settings → Privacy & Security if you want to stay logged in.
 - The lock screen (hyprlock, `SUPER+Escape`) shows the time, the date, a greeting and the battery level over the wallpaper, in the palette colours (`home/lock-idle.nix`).
 - The launcher is hyprlauncher (`SUPER+D`, `home/launcher.nix`): apps, plus emoji after `.`, maths after `=` and fonts after `'`. The power menu, the clipboard picker and the window picker use it too. The Hypr tools (launcher, mixer, password prompts, shutdown screen, `hyprsysteminfo`) share one look set from the Stylix palette.
@@ -769,8 +770,10 @@ Testing happens in **CI** (`.github/workflows/ci.yml`), on every pull request an
 4. a simulation of every monitor profile with a fake Hyprland: with only the laptop panel connected
    (or none listed yet, as at startup) no profile switches the panel off; with an external screen,
    each profile gives the expected layout
-5. `hyprdynamicmonitors validate` on the generated config
-6. the full system build, the same `nix build` the laptop runs
+5. the login screen: the ctOS greeter is started the way greetd starts it (kiosk mode in cage), on a
+   headless screen; it must still be running after a few seconds and must have drawn its screen
+6. `hyprdynamicmonitors validate` on the generated config
+7. the full system build, the same `nix build` the laptop runs
 
 Results show up on the pull request ("Checks") and under the repository's Actions tab.
 
